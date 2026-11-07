@@ -726,11 +726,14 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
    Überschriften und Logo in voller Textfarbe (im Dunkeln weiß), Text in den Auswahlfeldern
    hellgrau wie bei der Sportart-Auswahl; die gewählte Option hebt sich wie dort ab.
    ===================================================================== */
-.seg button, .chip, .favbtn:not(.primary), .search input, .dist-in input, .row .txt b { color: var(--muted); }
-.seg button[aria-pressed="true"] { color: var(--ink); }
+/* Nicht gewählt: hellgrau. Gewählt: volle Textfarbe (im Dunkeln weiß), überall gleich. Symbole behalten die Sportfarbe. */
+.modes .mode, .seg button, .chip, .favbtn:not(.primary), .layermenu button, .variant .vkm,
+.search input, .dist-in input, .row .txt b { color: var(--muted); }
+.modes .mode[aria-pressed="true"], .seg button[aria-pressed="true"], .chip[aria-pressed="true"],
+.layermenu button[aria-checked="true"], .variant[aria-pressed="true"] .vkm, .row:has(input:checked) .txt b { color: var(--ink); }
 @media (max-width: 820px) {
   /* Logo weiter weg von der runden Ecke */
-  .brand { padding: 8px 0 var(--s3) 8px; }
+  .brand { padding: 16px 0 var(--s3) 8px; }
   .panel { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s6) + var(--sheet-off, 0px)); }
 }
 </style>
@@ -1065,8 +1068,9 @@ function sheetDetents() {
   const vh = window.innerHeight, head = $('sheethead');
   const large = Math.round(safeInsets.top + 12);
   const medium = Math.round(vh * 0.5);
-  // Ganz eingeklappt: nur Griff, Logo und Name bleiben sichtbar, der Rest gehört der Karte.
-  const peekH = head.offsetTop + head.offsetHeight + safeInsets.bottom + 10;
+  // Ganz eingeklappt: nur Logo und Name bleiben sichtbar, senkrecht genau mittig im sichtbaren Glasstreifen.
+  const logo = head.querySelector('h1');
+  const peekH = 2 * (logo.offsetTop + logo.offsetHeight / 2);
   return { large, medium, peek: Math.round(Math.max(medium + 60, vh - peekH)) };
 }
 function setSheet(detent, animate = true) {
