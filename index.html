@@ -758,6 +758,10 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
 .search input, .dist-in input, .row .txt b { color: var(--ink); }
 .search input::placeholder { color: var(--ink-2); }
 
+/* Kartenquellen: Leaflet legt einen hellen Streifen darunter, deshalb in Hell und Dunkel dieselbe dunkle Schrift */
+.leaflet-container .leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution a { color: rgba(52, 52, 60, .78); }
+
 @media (prefers-contrast: more) {
   :root { --ink-2: rgba(30, 30, 36, .92); --muted: rgba(30, 30, 36, .88); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink-2: rgba(245, 245, 250, .9); --muted: rgba(245, 245, 250, .86); } }
