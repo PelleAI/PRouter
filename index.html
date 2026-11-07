@@ -722,18 +722,53 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
 }
 
 /* =====================================================================
-   Stufe 5: einheitliche Schrift und Handy-Sheet.
-   Überschriften und Logo in voller Textfarbe (im Dunkeln weiß), Text in den Auswahlfeldern
-   hellgrau wie bei der Sportart-Auswahl; die gewählte Option hebt sich wie dort ab.
+   Stufe 5: Textfarben, die auf dem klaren Glas in Hell und Dunkel gut lesbar sind,
+   auf Mac, iPhone und iPad gleich.
+   Drei Stufen: Text (Überschriften, Gewähltes, Werte) · Sekundär (nicht gewählte Optionen) ·
+   Hinweis (Erklärtexte). Gewähltes hebt sich zusätzlich durch getöntes Glas in der Sportfarbe ab.
    ===================================================================== */
-/* Nicht gewählt: hellgrau. Gewählt: volle Textfarbe (im Dunkeln weiß), überall gleich. Symbole behalten die Sportfarbe. */
-.modes .mode, .seg button, .chip, .favbtn:not(.primary), .layermenu button, .variant .vkm,
-.search input, .dist-in input, .row .txt b { color: var(--muted); }
+:root {
+  --ink: #111114;
+  --ink-2: rgba(44, 44, 52, .8);      /* nicht gewählte Optionen */
+  --muted: rgba(52, 52, 60, .74);     /* Hinweise und Erklärtexte */
+  --muted-2: rgba(52, 52, 60, .5);
+  --grabber: rgba(40, 40, 48, .38);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #f5f5f7; --ink-2: rgba(235, 235, 245, .7); --muted: rgba(235, 235, 245, .64); --muted-2: rgba(235, 235, 245, .42);
+    --grabber: rgba(235, 235, 245, .5);
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #f5f5f7; --ink-2: rgba(235, 235, 245, .7); --muted: rgba(235, 235, 245, .64); --muted-2: rgba(235, 235, 245, .42);
+  --grabber: rgba(235, 235, 245, .5);
+}
+
+/* Auswahlfelder: nicht gewählt in Sekundärfarbe, gewählt in voller Textfarbe und etwas kräftiger */
+.modes .mode, .seg button, .chip, .favbtn:not(.primary), .layermenu button, .compass button, .variant .vkm { color: var(--ink-2); }
+.seg button, .chip, .layermenu button { font-weight: 500; }
+.chip svg { color: inherit; }
 .modes .mode[aria-pressed="true"], .seg button[aria-pressed="true"], .chip[aria-pressed="true"],
-.layermenu button[aria-checked="true"], .variant[aria-pressed="true"] .vkm, .row:has(input:checked) .txt b { color: var(--ink); }
+.layermenu button[aria-checked="true"], .variant[aria-pressed="true"] .vkm { color: var(--ink); }
+.seg button[aria-pressed="true"], .chip[aria-pressed="true"], .layermenu button[aria-checked="true"] { font-weight: 600; }
+.modes .mode[aria-pressed="true"] svg, .chip[aria-pressed="true"] svg { color: var(--accent); }
+.compass button[aria-pressed="true"] { color: var(--accent-ink); }
+/* Eingaben und Schalter-Titel sind Inhalte, keine Optionen: immer gut lesbar */
+.search input, .dist-in input, .row .txt b { color: var(--ink); }
+.search input::placeholder { color: var(--ink-2); }
+
+@media (prefers-contrast: more) {
+  :root { --ink-2: rgba(30, 30, 36, .92); --muted: rgba(30, 30, 36, .88); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink-2: rgba(245, 245, 250, .9); --muted: rgba(245, 245, 250, .86); } }
+}
+
 @media (max-width: 820px) {
-  /* Logo weiter weg von der runden Ecke */
-  .brand { padding: 16px 0 var(--s3) 8px; }
+  /* Griffbalken: darf im Flex-Layout nicht zusammengedrückt werden, und gut sichtbar */
+  .sheet-grabber { flex: none; height: 20px; }
+  .sheet-grabber span { top: 7px; width: 40px; height: 5px; border-radius: 3px; background: var(--grabber); }
+  /* Logo mit Abstand zur runden Ecke */
+  .brand { padding: 6px 0 20px 8px; }
   .panel { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s6) + var(--sheet-off, 0px)); }
 }
 </style>
