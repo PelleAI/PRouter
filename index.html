@@ -773,7 +773,19 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
   .sheet-grabber span { top: 7px; width: 40px; height: 5px; border-radius: 3px; background: var(--grabber); }
   /* Logo mit Abstand zur runden Ecke */
   .brand { padding: 6px 0 20px 8px; }
-  .panel { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s6) + var(--sheet-off, 0px)); }
+  /* Das Fenster endet am unteren Bildschirmrand (--sheet-cut), damit der Scrollbalken nicht im Unsichtbaren verschwindet */
+  .panel { height: calc(100dvh - var(--sheet-top, 56px) - var(--sheet-cut, 0px)); }
+}
+
+/* Mac: schmaler Scrollbalken, der oben und unten Abstand zu den runden Ecken hält und nur beim Zeigen erscheint */
+@supports selector(::-webkit-scrollbar) {
+  @media (min-width: 821px) and (hover: hover) and (pointer: fine) {
+    .panel { scrollbar-width: auto; scrollbar-color: auto; padding-right: calc(var(--s5) - 10px); }
+    .panel::-webkit-scrollbar { width: 10px; background: transparent; }
+    .panel::-webkit-scrollbar-track { background: transparent; margin-block: calc(var(--r-sheet) + 4px); }
+    .panel::-webkit-scrollbar-thumb { background: var(--grabber); background-clip: padding-box; border: 3px solid transparent; border-radius: 5px; }
+    .panel:not(:hover)::-webkit-scrollbar-thumb { background: transparent; }
+  }
 }
 </style>
 </head>
@@ -1092,7 +1104,7 @@ document.querySelectorAll('.seg, .modes, .compass').forEach(g => indicatorObserv
 
 /* ---------- Sheet am Handy: eingeklappt, halb oder ganz offen, per Wischgeste ---------- */
 const sheetMQ = matchMedia('(max-width: 820px)');
-const sheet = { mv: Mo ? Mo.motionValue(0) : null, y: 0, target: 0, detent: 'medium', anim: null };
+const sheet = { mv: Mo ? Mo.motionValue(0) : null, y: 0, target: 0, detent: 'medium', anim: null, token: 0 };
 const putSheet = y => { sheet.y = y; $('panel').style.transform = `translate3d(0, ${y}px, 0)`; };
 if (sheet.mv) sheet.mv.on('change', putSheet);
 const safeInsets = (() => {
@@ -1119,13 +1131,20 @@ function setSheet(detent, animate = true) {
   sheet.target = d[detent];
   const panel = $('panel');
   panel.style.setProperty('--sheet-top', d.large + 'px');
-  // Was unten aus dem Bildschirm ragt, kommt als Polster unter den Inhalt, damit man in jeder Höhe bis ganz unten scrollen kann.
-  panel.style.setProperty('--sheet-off', Math.max(0, d[detent] - d.large) + 'px');
+  // Während der Bewegung reicht das Fenster bis ganz unten; erst nach dem Einrasten endet es am Bildschirmrand,
+  // damit Inhalt und Scrollbalken in jeder Höhe ganz sichtbar sind.
+  const token = ++sheet.token;
+  const cut = () => { if (token === sheet.token) panel.style.setProperty('--sheet-cut', Math.max(0, d[detent] - d.large) + 'px'); };
+  panel.style.setProperty('--sheet-cut', '0px');
   if (detent === 'peek') panel.scrollTo({ top: 0, behavior: animate && !reduceMotion.matches ? 'smooth' : 'auto' });
   if (sheet.anim) sheet.anim.stop();
-  if (sheet.mv && animate && !reduceMotion.matches) sheet.anim = Mo.animate(sheet.mv, sheet.target, SPRINGS.smooth);
-  else if (sheet.mv) sheet.mv.set(sheet.target);
-  else putSheet(sheet.target);
+  if (sheet.mv && animate && !reduceMotion.matches) {
+    sheet.anim = Mo.animate(sheet.mv, sheet.target, SPRINGS.smooth);
+    Promise.resolve(sheet.anim).then(cut, cut);
+  } else {
+    if (sheet.mv) sheet.mv.set(sheet.target); else putSheet(sheet.target);
+    cut();
+  }
 }
 (() => {
   let startY = 0, startSheet = 0, dragging = false, moved = false, pid = null;
@@ -1133,6 +1152,7 @@ function setSheet(detent, animate = true) {
     if (!sheetMQ.matches || e.button > 0) return;
     dragging = true; moved = false; pid = e.pointerId; startY = e.clientY; startSheet = sheet.y;
     if (sheet.anim) sheet.anim.stop();
+    sheet.token++; $('panel').style.setProperty('--sheet-cut', '0px');
     e.currentTarget.setPointerCapture(pid);
   };
   const move = e => {
