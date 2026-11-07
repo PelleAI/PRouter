@@ -720,6 +720,19 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .glass, .panel, .leaflet-control-attribution, .capsule.glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+
+/* =====================================================================
+   Stufe 5: einheitliche Schrift und Handy-Sheet.
+   Überschriften und Logo in voller Textfarbe (im Dunkeln weiß), Text in den Auswahlfeldern
+   hellgrau wie bei der Sportart-Auswahl; die gewählte Option hebt sich wie dort ab.
+   ===================================================================== */
+.seg button, .chip, .favbtn:not(.primary), .search input, .dist-in input, .row .txt b { color: var(--muted); }
+.seg button[aria-pressed="true"] { color: var(--ink); }
+@media (max-width: 820px) {
+  /* Logo weiter weg von der runden Ecke */
+  .brand { padding: 8px 0 var(--s3) 8px; }
+  .panel { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s6) + var(--sheet-off, 0px)); }
+}
 </style>
 </head>
 <body data-mode="laufen">
@@ -1049,10 +1062,11 @@ const safeInsets = (() => {
   return v;
 })();
 function sheetDetents() {
-  const vh = window.innerHeight, block = $('mode-block');
+  const vh = window.innerHeight, head = $('sheethead');
   const large = Math.round(safeInsets.top + 12);
   const medium = Math.round(vh * 0.5);
-  const peekH = block.offsetTop + block.offsetHeight + safeInsets.bottom + 4;
+  // Ganz eingeklappt: nur Griff, Logo und Name bleiben sichtbar, der Rest gehört der Karte.
+  const peekH = head.offsetTop + head.offsetHeight + safeInsets.bottom + 10;
   return { large, medium, peek: Math.round(Math.max(medium + 60, vh - peekH)) };
 }
 function setSheet(detent, animate = true) {
@@ -1060,7 +1074,11 @@ function setSheet(detent, animate = true) {
   const d = sheetDetents();
   sheet.detent = detent;
   sheet.target = d[detent];
-  $('panel').style.setProperty('--sheet-top', d.large + 'px');
+  const panel = $('panel');
+  panel.style.setProperty('--sheet-top', d.large + 'px');
+  // Was unten aus dem Bildschirm ragt, kommt als Polster unter den Inhalt, damit man in jeder Höhe bis ganz unten scrollen kann.
+  panel.style.setProperty('--sheet-off', Math.max(0, d[detent] - d.large) + 'px');
+  if (detent === 'peek') panel.scrollTo({ top: 0, behavior: animate && !reduceMotion.matches ? 'smooth' : 'auto' });
   if (sheet.anim) sheet.anim.stop();
   if (sheet.mv && animate && !reduceMotion.matches) sheet.anim = Mo.animate(sheet.mv, sheet.target, SPRINGS.smooth);
   else if (sheet.mv) sheet.mv.set(sheet.target);
@@ -1081,6 +1099,7 @@ function setSheet(detent, animate = true) {
     const d = sheetDetents();
     let y = startSheet + dy;
     if (y < d.large) y = d.large - (d.large - y) * 0.25;           // Gummiband über dem obersten Stopp
+    if (y > d.peek) y = d.peek + (y - d.peek) * 0.25;              // und unter dem untersten
     if (sheet.mv) sheet.mv.set(y); else putSheet(y);
   };
   const up = e => {
