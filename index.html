@@ -777,6 +777,15 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
   .panel { height: calc(100dvh - var(--sheet-top, 56px) - var(--sheet-cut, 0px)); }
 }
 
+/* Eigener Schalter (iPhone, iPad): ausgeschaltete Schiene auch auf dunklem Glas gut sichtbar */
+:root { --switch-off: rgba(118, 118, 128, .26); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --switch-off: rgba(160, 160, 172, .42); } }
+:root[data-theme="dark"] { --switch-off: rgba(160, 160, 172, .42); }
+.no-native-switch .row input[type="checkbox"]:not(:checked) { background: var(--switch-off); }
+/* Stern: größere Tippfläche als das sichtbare 32-px-Feld */
+.favtoggle { position: relative; }
+.favtoggle::after { content: ''; position: absolute; inset: -6px; }
+
 /* Scrollbalken: überall derselbe eigene Balken (Mac, iPhone, iPad). Er bleibt zwischen den runden Ecken,
    reicht genau bis zum Ende des sichtbaren Fensters und ist in Hell und Dunkel gut zu sehen.
    Den Balken des Systems kann man auf iPhone und iPad nicht gestalten, deshalb ist er ausgeblendet. */
@@ -784,14 +793,14 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
 .panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .panelbar {
   position: fixed; left: 0; top: 0; z-index: 11; width: 5px; border-radius: 3px; background: var(--ink);
-  opacity: 0; pointer-events: none; transition: opacity .4s ease, width .15s ease; will-change: transform, opacity;
+  opacity: 0; pointer-events: none; transition: opacity .4s ease; will-change: transform, opacity;
 }
-.panelbar.on { opacity: .42; transition-duration: .12s, .15s; }
+.panelbar.on { opacity: .42; transition-duration: .12s; }
 /* Mac: erscheint, sobald die Maus über dem Fenster ist, und lässt sich mit der Maus ziehen */
 @media (hover: hover) and (pointer: fine) {
   .panelbar { width: 6px; }
   .panelbar.on { pointer-events: auto; }
-  .panelbar.on:hover, .panelbar.drag { opacity: .62; width: 8px; }
+  .panelbar.on:hover, .panelbar.drag { opacity: .62; }
 }
 </style>
 </head>
@@ -1294,7 +1303,10 @@ const saveFavs = list => store.set('favs', list);
 }
 
 // Ohne Startpunkt zeigt die Karte zunächst Deutschland
-const map = L.map('map', { zoomControl: false, attributionControl: true })
+const map = L.map('map', {
+  zoomControl: false, attributionControl: true,
+  zoomAnimation: !reduceMotion.matches, fadeAnimation: !reduceMotion.matches, markerZoomAnimation: !reduceMotion.matches
+})
   .setView(state.start ? [state.start.lat, state.start.lon] : [51.1, 10.4], state.start ? 13 : 6);
 const TILE_LAYERS = {
   'Standard': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1340,6 +1352,11 @@ $('layermenu').addEventListener('click', e => {
   toggleLayerMenu(false);
 });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('#mapctl')) toggleLayerMenu(false); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('layermenu').hidden) { toggleLayerMenu(false); $('ctl-layers').focus(); }
+  if (picking) setPicking(false);
+});
 $('ctl-in').addEventListener('click', () => map.zoomIn());
 $('ctl-out').addEventListener('click', () => map.zoomOut());
 new ResizeObserver(() => map.invalidateSize()).observe($('map'));
@@ -1412,6 +1429,7 @@ async function reverseLabel(lat, lon) {
 function renderStart() {
   const s = state.start;
   renderFavs();
+  syncDark();   // Sonnenuntergang gilt für den aktuellen Startpunkt
   if (!s) {
     $('startline').innerHTML = '<span>Noch kein Startpunkt. Suche einen Ort, nutze „Mein Standort“ oder tippe auf „Auf Karte“.</span>';
     return;
@@ -1603,6 +1621,8 @@ function chooseSuggest(i) {
   setStart(s);
 }
 function closeSuggest() {
+  searchSeq++;                 // noch laufende Suchen öffnen die Liste danach nicht wieder
+  clearTimeout(searchTimer);
   suggestEl.hidden = true;
   qInput.setAttribute('aria-expanded', 'false');
   qInput.removeAttribute('aria-activedescendant');
@@ -1895,13 +1915,18 @@ bindSeg('dir', 'dir');
 
 // opts.flat: Steigungen meiden · opts.lenient: Laufen-Rückfall, unbefestigte Wege nur teuer statt gesperrt
 // opts.towns: Innenstädte erlaubt (sonst werden Ortskerne möglichst umgangen)
-const profileCache = {};
+const profileCache = {}, profilePending = {};
 async function profileId(mode, opts, force = false) {
   const key = `${mode}:${opts.flat ? 'flat' : 'any'}:${opts.lenient ? 'lenient' : 'strict'}:${opts.towns ? 'towns' : 'notowns'}:${opts.dark ? 'dark' : 'day'}:v6`;
   if (!force) {
     if (profileCache[key]) return profileCache[key];
     try { const s = sessionStorage.getItem('schleife:pid:' + key); if (s) return (profileCache[key] = s); } catch {}
   }
+  // Starten mehrere Routen gleichzeitig, wird das Profil trotzdem nur einmal zum Server geschickt
+  if (!profilePending[key]) profilePending[key] = uploadProfile(mode, opts, key).finally(() => { delete profilePending[key]; });
+  return profilePending[key];
+}
+async function uploadProfile(mode, opts, key) {
   let text = await (await fetch(MODES[mode].profile, { cache: 'no-cache' })).text();
   if (opts.flat) text = text.replace(/assign hills = 1/, 'assign hills = 0');
   if (opts.lenient) text = text.replace(/assign strict = 1/, 'assign strict = 0');
@@ -2414,6 +2439,8 @@ async function generate() {
   routeBudget.blocked = false;
   setBusy(true);
   clearVariants();
+  const gen = state.gen;
+  const stale = () => gen !== state.gen;
   // Ein einziger Countdown: so lange dauert der Klick höchstens; sind die Varianten früher fertig, endet er früher
   const until = Date.now() + timeFor(CLICK_REQUESTS) + 8000;
   const tick = () => {
@@ -2434,7 +2461,7 @@ async function generate() {
   all.forEach(prep);
   let list = pickVariants(all, ro, false);
   // Weniger als drei gute? Mit dem restlichen Kontingent dieses Klicks nachrechnen (ohne zusätzliche Wartezeit)
-  for (let extra = 0; list.length < 3 && routeBudget.left > 0 && extra < 12; extra++) {
+  for (let extra = 0; list.length < 3 && routeBudget.left > 0 && extra < 12 && !stale(); extra++) {
     try {
       const v = await buildCandidate(randomThetas(1)[0], Math.floor(Math.random() * 2 ** 31), lo, hi, ro);
       prep(v);
@@ -2446,6 +2473,12 @@ async function generate() {
     }
   }
   clearInterval(ticker);
+  // Start, Sportart oder Optionen wurden während der Berechnung geändert: alte Ergebnisse nicht zeigen
+  if (stale()) {
+    setBusy(false);
+    setStatus('Die Einstellungen wurden während der Berechnung geändert. Tippe nochmal auf „Routen erstellen“.');
+    return;
+  }
   // Immer noch keine drei: mit den nächstbesten auffüllen (knapp außerhalb der Länge oder einer früheren ähnlich)
   if (list.length < 3) list = pickVariants(all, ro, true, list);
   setBusy(false);
@@ -2458,6 +2491,7 @@ async function generate() {
   }
   remember(list);
   state.variants = list;
+  $('go-text').textContent = 'Neue Varianten';
   const off = list.filter(v => v.miss > 0).length;
   setStatus(list.some(v => v.surf.hard)
     ? 'Hinweis: Hier ging es nicht ganz ohne unbefestigtes Stück. Ein anderer Start oder eine andere Richtung hilft meist.'
@@ -2500,6 +2534,7 @@ $('go').addEventListener('click', generate);
 /* ---------- Darstellung ---------- */
 
 function clearVariants() {
+  state.gen = (state.gen || 0) + 1;   // macht eine laufende Berechnung mit alten Einstellungen ungültig
   state.variants = []; state.selected = -1;
   routeLayer.clearLayers(); kmLayer.clearLayers(); map.removeLayer(hoverMarker);
   $('results').hidden = true; $('detail').hidden = true; $('maplegend').hidden = true;
@@ -2535,7 +2570,9 @@ $('variants').addEventListener('click', e => {
 
 function selectVariant(i, fit = false) {
   state.selected = i;
+  const hadFocus = $('variants').contains(document.activeElement);
   renderVariants();
+  if (hadFocus && $('var-' + i)) $('var-' + i).focus({ preventScroll: true });
   drawRoutes(fit);
   renderDetail();
 }
@@ -2609,9 +2646,8 @@ function renderDetail() {
   const v = state.variants[state.selected];
   if (!v) { $('detail').hidden = true; return; }
   $('detail').hidden = false;
-  const desc = v.route.coords.reduce((acc, c, i, arr) => i && arr[i - 1][2] > c[2] ? acc + (arr[i - 1][2] - c[2]) : acc, 0);
   const eles = v.route.coords.map(c => c[2]).filter(e => e != null);
-  $('elev-out').textContent = `↑ ${fmtNum(v.route.ascent)} m · ${fmtNum(Math.min(...eles))}–${fmtNum(Math.max(...eles))} m ü. NN`;
+  $('elev-out').textContent = `↑ ${fmtNum(v.route.ascent)} m` + (eles.length ? ` · ${fmtNum(Math.min(...eles))}–${fmtNum(Math.max(...eles))} m ü. NN` : '');
   $('detail-surface').innerHTML = surfaceShares(v).map(x =>
     `<span><i style="background:${SURF[x.k].color}"></i>${SURF[x.k].label} ${x.pct < 1 ? '<1' : Math.round(x.pct)} %</span>`).join('');
   const showLit = MODES[state.mode].dark && state.dark;
@@ -2828,6 +2864,8 @@ setSheet('medium', false);
 if (state.start) showOnMap([state.start.lat, state.start.lon], 13);
 map.on('dragstart', () => { if (sheetMQ.matches && sheet.detent === 'large') setSheet('medium'); });
 loadFromHash();
+// Wird ein geteilter Link in der schon offenen App geöffnet, ändert sich nur das #-Stück der Adresse
+window.addEventListener('hashchange', () => { if (!state.busy) loadFromHash(); });
 </script>
 </body>
 </html>
