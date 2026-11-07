@@ -1,0 +1,101 @@
+# Laufen: Asphalt stark bevorzugt, ruhige Strassen und Wege.
+# strict = 1 (Standard): unbefestigte Wege sind gesperrt.
+# strict = 0 (Rueckfall, wenn strikt keine Route moeglich ist): erlaubt, aber sehr teuer.
+
+---context:global
+assign validForFoot = true
+assign hills = 1   # %hills% | 0 = flach bevorzugen, 1 = egal | number
+assign strict = 1  # %strict% | 1 = unbefestigt gesperrt, 0 = nur teuer | number
+assign avoidtown = 1  # %avoidtown% | 1 = Innenstädte möglichst meiden, 0 = egal | number
+assign dark = 0  # %dark% | 1 = im Dunkeln beleuchtete Wege bevorzugen | number
+
+assign downhillcost   = 0
+assign downhillcutoff = 1.5
+assign uphillcost     = if equal hills 0 then 40 else 0
+assign uphillcutoff   = 2
+
+assign turnInstructionMode = 0
+assign considerTurnRestrictions = false
+assign correctMisplacedViaPoints = true
+assign correctMisplacedViaPointsDistance = 800
+assign processUnusedTags = false
+
+---context:way
+
+assign isroad = highway=primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road
+assign likelyasphalt =
+  or surface=asphalt|paved
+     and surface= or isroad and highway=track tracktype=grade1
+assign pavedother = surface=concrete|paving_stones|sett|cobblestone|grass_paver|metal|wood
+assign unpaved = surface=unpaved|gravel|ground|dirt|grass|compacted|sand|pebblestone|fine_gravel|earth|mud|clay|rock|stone
+
+assign footaccess =
+  switch foot=
+    switch access=
+      not or motorroad=yes highway=motorway|motorway_link|trunk|trunk_link
+      not access=private|no
+    not foot=private|no|use_sidepath
+
+assign surfacefactor =
+  if likelyasphalt then 1.0
+  else if pavedother then ( if surface=concrete then 1.3 else 1.8 )
+  else if unpaved then ( if surface=compacted|fine_gravel then 6 else 10 )
+  else if surface= then
+    ( if highway=footway|pedestrian|cycleway then 1.6 else if highway=steps then 3 else 8 )
+  else 4
+
+assign hassidewalk = sidewalk=both|left|right|separate
+
+assign roadfactor =
+  if highway=primary|primary_link then ( if hassidewalk then 1.8 else 4 )
+  else if highway=secondary|secondary_link then ( if hassidewalk then 1.4 else 2.5 )
+  else if highway=tertiary|tertiary_link then ( if hassidewalk then 1.1 else 1.5 )
+  else if highway=unclassified then 1.15
+  else if highway=service then 1.2
+  else if highway=steps then 2
+  else 1.0
+
+assign trafficpenalty =
+  if estimated_traffic_class=|1|2|3 then 0
+  else if estimated_traffic_class=4 then 0.3
+  else if estimated_traffic_class=5 then 0.7
+  else if estimated_traffic_class=6|7 then 1.5
+  else 0
+
+# Bebautes Gebiet erkennen: Straßenbeleuchtung, Tempo 30 / innerorts, Wohnstraßen, viel Lärm.
+# Jeder Hinweis macht den Weg teurer, so führen Routen möglichst außen herum.
+# Im Dunkeln ist Beleuchtung erwünscht und zählt nicht als Hinweis auf Innenstadt
+assign urbanlit   = if dark then 0 else if lit=yes then 1 else 0
+assign urbanspeed = if or maxspeed=urban|30|20|10 zone:maxspeed=30|20 then 1 else 0
+assign urbanroad  = if highway=residential|living_street|pedestrian then 1 else 0
+assign urbannoise = if estimated_noise_class=5|6 then 1 else 0
+assign urbanscore = add urbanlit add urbanspeed add urbanroad urbannoise
+assign townpenalty = if avoidtown then multiply urbanscore ( if dark then 0.3 else 0.65 ) else 0
+
+# Im Dunkeln: unbeleuchtete Wege deutlich teurer
+assign litway = lit=yes|sunset-sunrise|24/7|automatic
+assign darkpenalty = if dark then ( if litway then 0 else 2 ) else 0
+
+assign strictblock =
+  and strict
+  and not likelyasphalt
+      or unpaved and surface= highway=path|track|bridleway
+
+assign forbidden =
+  or not footaccess
+  or strictblock
+  or highway=
+     highway=motorway|motorway_link|trunk|trunk_link|construction|proposed|abandoned|raceway
+
+assign turncost = 0
+assign initialcost = 0
+assign costfactor =
+  if forbidden then 10000
+  else min 9999 multiply surfacefactor add roadfactor add trafficpenalty add townpenalty darkpenalty
+
+---context:node
+
+assign initialcost =
+  if and avoidtown highway=traffic_signals then 80
+  else if and access=private|no not foot=yes|designated|permissive then 1000000
+  else 0

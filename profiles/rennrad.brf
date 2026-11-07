@@ -1,0 +1,100 @@
+# Rennrad: ausschliesslich Asphalt.
+# Alles, was nicht sicher Asphalt ist, ist gesperrt (costfactor 10000).
+# Strassen ohne surface-Tag gelten als asphaltiert (in DE praktisch immer der Fall),
+# Wege (track/path/cycleway/footway) ohne surface-Tag dagegen nicht.
+
+---context:global
+assign validForBikes = true
+assign hills = 1   # %hills% | 0 = flach bevorzugen, 1 = egal | number
+assign avoidtown = 1  # %avoidtown% | 1 = Innenstädte möglichst meiden, 0 = egal | number
+
+assign downhillcost   = 0
+assign downhillcutoff = 1.5
+assign uphillcost     = if equal hills 0 then 70 else 0
+assign uphillcutoff   = 1.5
+
+assign totalMass  = 85
+assign maxSpeed   = 55
+assign S_C_x      = 0.25
+assign C_r        = 0.005
+assign bikerPower = 180
+
+assign turnInstructionMode = 0
+assign considerTurnRestrictions = true
+assign correctMisplacedViaPoints = true
+assign correctMisplacedViaPointsDistance = 1500
+assign processUnusedTags = false
+
+---context:way
+
+assign isasphalt = surface=asphalt|paved
+assign isroad = highway=primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road
+assign roughness = smoothness=bad|very_bad|horrible|very_horrible|impassable|robust_wheels|high_clearance|off_road_wheels|rough|poor
+assign surfaceok = and not roughness ( or isasphalt and surface= isroad )
+
+assign defaultaccess =
+  switch access=
+    not or motorroad=yes highway=motorway|motorway_link
+    not access=private|no
+
+assign bikeaccess =
+  switch bicycle=
+    switch bicycle_road=yes true
+      switch vehicle=
+        ( if highway=footway|pedestrian|steps then false else defaultaccess )
+        not vehicle=private|no
+    not bicycle=private|no|dismount|use_sidepath
+
+assign badoneway =
+  if reversedirection=yes then
+    ( if oneway:bicycle=yes then true else if oneway= then junction=roundabout else oneway=yes|true|1 )
+  else oneway=-1
+
+assign wrongway = and badoneway not oneway:bicycle=no
+
+assign trafficpenalty =
+  if estimated_traffic_class=|1|2 then 0
+  else if estimated_traffic_class=3 then 0.2
+  else if estimated_traffic_class=4 then 0.5
+  else if estimated_traffic_class=5 then 0.9
+  else if estimated_traffic_class=6|7 then 1.6
+  else 0
+
+# Bebautes Gebiet erkennen: Straßenbeleuchtung, Tempo 30 / innerorts, Wohnstraßen, viel Lärm.
+# Jeder Hinweis macht den Weg teurer, so führen Routen möglichst außen herum.
+assign urbanlit   = if lit=yes then 1 else 0
+assign urbanspeed = if or maxspeed=urban|30|20|10 zone:maxspeed=30|20 then 1 else 0
+assign urbanroad  = if highway=residential|living_street|pedestrian then 1 else 0
+assign urbannoise = if estimated_noise_class=5|6 then 1 else 0
+assign urbanscore = add urbanlit add urbanspeed add urbanroad urbannoise
+assign townpenalty = if avoidtown then multiply urbanscore 0.55 else 0
+
+assign forbidden =
+  or not bikeaccess
+  or not surfaceok
+  or wrongway
+  or highway=
+     highway=motorway|motorway_link|trunk|trunk_link|steps|construction|proposed|abandoned|platform|raceway|bridleway
+
+assign basefactor =
+  if highway=primary|primary_link then 2.5
+  else if highway=secondary|secondary_link then 1.6
+  else if highway=tertiary|tertiary_link then 1.2
+  else if highway=unclassified then 1.0
+  else if highway=residential|living_street then 1.3
+  else if highway=service then 1.8
+  else if highway=cycleway then 1.15
+  else if highway=track then 1.05
+  else if highway=path|footway|pedestrian then 2.0
+  else 1.5
+
+assign turncost = if junction=roundabout then 0 else 60
+assign initialcost = 0
+assign costfactor = if forbidden then 10000 else add trafficpenalty add townpenalty basefactor
+
+---context:node
+
+assign initialcost =
+  if or highway=traffic_signals and highway=crossing crossing=traffic_signals then ( if avoidtown then 150 else 20 )
+  else if and access=private|no not bicycle=yes|designated then 1000000
+  else 0
