@@ -783,9 +783,24 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
     .panel { scrollbar-width: auto; scrollbar-color: auto; padding-right: calc(var(--s5) - 10px); }
     .panel::-webkit-scrollbar { width: 10px; background: transparent; }
     .panel::-webkit-scrollbar-track { background: transparent; margin-block: calc(var(--r-sheet) + 4px); }
-    .panel::-webkit-scrollbar-thumb { background: var(--grabber); background-clip: padding-box; border: 3px solid transparent; border-radius: 5px; }
+    /* Kaum sichtbar, solange die Maus nur über dem Fenster ist; deutlicher über dem Balken; voll beim Ziehen */
+    .panel::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--grabber) 35%, transparent); background-clip: padding-box; border: 3px solid transparent; border-radius: 5px; }
+    .panel::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--grabber) 70%, transparent); }
+    .panel::-webkit-scrollbar-thumb:active { background-color: var(--grabber); }
     .panel:not(:hover)::-webkit-scrollbar-thumb { background: transparent; }
   }
+}
+/* iPhone und iPad: Der Scrollbalken des Systems lässt sich nicht gestalten und läuft in die Ecken,
+   deshalb ein eigener, gut sichtbarer Balken, der beim Scrollen erscheint */
+.panelbar {
+  position: fixed; left: 0; top: 0; z-index: 11; width: 5px; border-radius: 3px; background: var(--ink);
+  opacity: 0; pointer-events: none; transition: opacity .4s ease; will-change: transform, opacity;
+}
+.panelbar.on { opacity: .45; transition-duration: .12s; }
+@media (hover: hover) and (pointer: fine) { .panelbar { display: none; } }
+@media not all and (hover: hover) and (pointer: fine) {
+  .panel { scrollbar-width: none; }
+  .panel::-webkit-scrollbar { display: none; }
 }
 </style>
 </head>
@@ -1105,7 +1120,7 @@ document.querySelectorAll('.seg, .modes, .compass').forEach(g => indicatorObserv
 /* ---------- Sheet am Handy: eingeklappt, halb oder ganz offen, per Wischgeste ---------- */
 const sheetMQ = matchMedia('(max-width: 820px)');
 const sheet = { mv: Mo ? Mo.motionValue(0) : null, y: 0, target: 0, detent: 'medium', anim: null, token: 0 };
-const putSheet = y => { sheet.y = y; $('panel').style.transform = `translate3d(0, ${y}px, 0)`; };
+const putSheet = y => { sheet.y = y; $('panel').style.transform = `translate3d(0, ${y}px, 0)`; if (window.placePanelBar) window.placePanelBar(); };
 if (sheet.mv) sheet.mv.on('change', putSheet);
 const safeInsets = (() => {
   const probe = document.createElement('div');
@@ -1195,6 +1210,41 @@ function layoutChanged() {
 }
 window.addEventListener('resize', layoutChanged);
 sheetMQ.addEventListener('change', layoutChanged);
+
+/* Eigener Scrollbalken auf iPhone und iPad: bleibt zwischen den runden Ecken und reicht genau
+   von ganz oben bis ganz unten im sichtbaren Teil des Fensters */
+(() => {
+  const fine = matchMedia('(hover: hover) and (pointer: fine)');
+  const panel = $('panel');
+  const bar = document.createElement('div');
+  bar.className = 'panelbar'; bar.setAttribute('aria-hidden', 'true');
+  panel.after(bar);
+  let hideT = 0;
+  const place = () => {
+    if (fine.matches) return;
+    const r = panel.getBoundingClientRect(), cs = getComputedStyle(panel), vh = window.innerHeight;
+    const sh = panel.scrollHeight, ch = panel.clientHeight, max = sh - ch;
+    const top = r.top + parseFloat(cs.borderTopRightRadius) + 6;
+    const bottom = Math.min(r.bottom, vh) - Math.max(parseFloat(cs.borderBottomRightRadius) + 6, safeInsets.bottom + 8);
+    const track = bottom - top;
+    if (max <= 1 || track < 48) { bar.hidden = true; return; }
+    bar.hidden = false;
+    const seen = Math.max(0, Math.min(ch, vh - r.top));
+    const len = Math.min(track, Math.max(40, track * seen / sh));
+    const ratio = Math.min(1, Math.max(0, panel.scrollTop / max));
+    bar.style.height = len + 'px';
+    bar.style.transform = `translate3d(${r.right - 9}px, ${top + (track - len) * ratio}px, 0)`;
+  };
+  const flash = () => {
+    if (fine.matches) return;
+    place(); bar.classList.add('on');
+    clearTimeout(hideT); hideT = setTimeout(() => bar.classList.remove('on'), 1200);
+  };
+  panel.addEventListener('scroll', flash, { passive: true });
+  panel.addEventListener('touchstart', flash, { passive: true });
+  window.addEventListener('resize', place);
+  window.placePanelBar = place;
+})();
 
 // Welchen Teil der Karte die Steuerfläche verdeckt (Seitenleiste links, Sheet unten)
 function mapInsets() {
