@@ -7,6 +7,9 @@
 assign validForBikes = true
 assign hills = 1   # %hills% | 0 = flach bevorzugen, 1 = egal | number
 assign avoidtown = 1  # %avoidtown% | 1 = Innenstädte möglichst meiden, 0 = egal | number
+# Besonderheiten aus dem Freitextfeld (Standard 0 = wie bisher)
+assign quiet = 0      # %quiet% | 1 = Verkehr noch stärker meiden | number
+assign nosignals = 0  # %nosignals% | 1 = Ampeln meiden | number
 
 assign downhillcost   = 0
 assign downhillcutoff = 1.5
@@ -60,6 +63,13 @@ assign trafficpenalty =
   else if estimated_traffic_class=6|7 then 1.6
   else 0
 
+assign quietpenalty =
+  if quiet then
+    ( if highway=primary|primary_link|secondary|secondary_link then 2.5
+      else if estimated_traffic_class=4|5|6|7 then 1
+      else 0 )
+  else 0
+
 # Bebautes Gebiet erkennen: Straßenbeleuchtung, Tempo 30 / innerorts, Wohnstraßen, viel Lärm.
 # Jeder Hinweis macht den Weg teurer, so führen Routen möglichst außen herum.
 assign urbanlit   = if lit=yes then 1 else 0
@@ -90,11 +100,11 @@ assign basefactor =
 
 assign turncost = if junction=roundabout then 0 else 60
 assign initialcost = 0
-assign costfactor = if forbidden then 10000 else add trafficpenalty add townpenalty basefactor
+assign costfactor = if forbidden then 10000 else add trafficpenalty add quietpenalty add townpenalty basefactor
 
 ---context:node
 
 assign initialcost =
-  if or highway=traffic_signals and highway=crossing crossing=traffic_signals then ( if avoidtown then 150 else 20 )
+  if or highway=traffic_signals and highway=crossing crossing=traffic_signals then ( if or avoidtown nosignals then 150 else 20 )
   else if and access=private|no not bicycle=yes|designated then 1000000
   else 0
