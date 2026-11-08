@@ -386,6 +386,26 @@ button { cursor: pointer; touch-action: manipulation; }
 /* ---------- Detail ---------- */
 .detail { display: grid; gap: var(--s3); }
 .detail-card { background: var(--card); border-radius: var(--r-card); padding: var(--s3) var(--s3) var(--s4); display: grid; gap: var(--s3); }
+.wish textarea {
+  display: block; width: 100%; min-height: 76px; max-height: 180px; resize: none; border: 0; outline: none;
+  border-radius: 20px; padding: 12px 16px; font: inherit; font-size: var(--t-body); line-height: 1.35; color: var(--ink);
+  background: var(--ctl-bg); box-shadow: var(--ctl-rim);
+}
+.wish textarea::placeholder { color: var(--muted); }
+.wish textarea:focus { box-shadow: var(--ctl-rim), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.wishout { margin: 0; display: grid; gap: 6px; font-size: var(--t-foot); color: var(--muted); }
+.wishout .wrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.wchip { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 10px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-text); font-weight: 600; }
+.wchip::before { content: '✓'; margin-right: 5px; font-weight: 700; }
+.wchip.note { background: var(--fill); color: var(--muted); font-weight: 500; }
+.wchip.note::before { content: 'i'; font: italic 700 12px/1 Georgia, serif; }
+.wishline { margin: 0; font-size: var(--t-foot); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.wishline b { color: var(--ink); font-weight: 600; }
+.wishline .miss b { color: var(--danger); }
+.wishmark { display: inline-block; translate: -50% -50%; white-space: nowrap; padding: 3px 8px; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font: 600 11px/1 var(--f-round); box-shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 0 0 1.5px #fff; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .wish textarea { background: var(--fill); } }
 .litline { margin: 0; font-size: var(--t-foot); color: var(--muted); display: flex; align-items: center; gap: 7px; }
 .litline b { color: var(--ink); }
 .litline svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
@@ -478,10 +498,12 @@ button { cursor: pointer; touch-action: manipulation; }
   .brand h1 { font-size: 1.375rem; }
   .brand h1 svg { width: 26px; height: 26px; }
   .leaflet-control-zoom { display: none; }
-  .maplegend { left: var(--s3); right: auto; top: calc(env(safe-area-inset-top, 0px) + 34px); bottom: auto; font-size: 11px; gap: 3px 10px; padding: 6px 12px; max-width: calc(100% - 80px); }
+  /* Legende als 2×2-Raster, gleich hoch wie der Kartenstil-Knopf und auf derselben Höhe (unter der Quellenangabe oben links) */
+  .maplegend { left: var(--s3); right: auto; top: calc(env(safe-area-inset-top, 0px) + 28px); bottom: auto; display: grid; grid-template-columns: auto auto;
+    align-content: center; min-height: 54px; font-size: 12px; gap: 3px 14px; padding: 6px 18px; max-width: calc(100% - 92px); }
   .leaflet-top.leaflet-right .leaflet-control { margin: var(--s3) var(--s3) 0 0; }
   .leaflet-control-attribution { border-radius: 0 0 var(--r-in) 0; }
-  .mapbusy, .pickhint { top: calc(env(safe-area-inset-top, 0px) + 56px); }
+  .mapbusy, .pickhint { top: calc(env(safe-area-inset-top, 0px) + 94px); }
 }
 @media (max-width: 380px) {
   .opts { grid-template-columns: 1fr; }
@@ -616,7 +638,7 @@ button { cursor: pointer; touch-action: manipulation; }
   .label { font-size: 1.375rem; }
   .opt .label { font-size: var(--t-headline); }
   .zoomcap { display: none; }
-  .mapctl { top: calc(env(safe-area-inset-top, 0px) + var(--s3)); right: var(--s3); }
+  .mapctl { top: calc(env(safe-area-inset-top, 0px) + 28px); right: var(--s3); }
 }
 
 /* Barrierefreiheit gilt auch für Stufe 2: deckende Flächen statt Glas */
@@ -953,6 +975,12 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
       </div>
     </section>
 
+    <section class="block wish" aria-labelledby="l-wish">
+      <div class="label"><label id="l-wish" for="wish">Besonderheiten</label><output>optional</output></div>
+      <textarea id="wish" rows="2" maxlength="300" enterkeyhint="done" autocomplete="off" aria-describedby="wish-out"></textarea>
+      <p class="wishout" id="wish-out" aria-live="polite" hidden></p>
+    </section>
+
     <section class="actionbar">
       <button class="go" id="go" type="button">
         <svg class="go-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 17V6.5h5a5.25 5.25 0 0 1 0 10.5h-5c0 3.2 4.6 2.6 4.6 5.6S12.2 26 8.6 26"/><circle cx="8.6" cy="26" r="2.4" fill="currentColor" stroke="none"/></svg>
@@ -973,6 +1001,7 @@ body[data-mode="rennrad"] { --accent: #2563eb; --accent-text: #1d4fd0; }
         <div class="elev" id="elev"><canvas id="elev-canvas" aria-label="Höhenprofil der gewählten Route" role="img"></canvas><div class="tip" id="elev-tip" hidden></div></div>
         <div class="slegend" id="detail-surface"></div>
         <p class="litline" id="detail-lit" hidden></p>
+        <p class="wishline" id="detail-wish" hidden></p>
       </div>
       <div class="actions">
         <button class="btn primary" type="button" id="gpx"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v10M6 9l4 4 4-4M4 16h12"/></svg>GPX herunterladen</button>
@@ -1736,6 +1765,8 @@ function setMode(mode, opts = {}) {
   $('prefs').hidden = !m.towns && !m.dark;
   applyRange(lo, hi);
   setTiles(m.tiles);
+  $('wish').placeholder = WISH_EXAMPLES[mode];
+  renderWishOut(); sizeWish();
   if (!opts.keep) clearVariants();
 }
 
@@ -1853,7 +1884,7 @@ function blockedCores() {
 // Wegpunkte, die in einem gesperrten Kern landen würden, nach außen schieben
 function pushOutOfCores(pts, cores) {
   return pts.map((p, i) => {
-    if (i === 0 || i === pts.length - 1) return p;
+    if (i === 0 || i === pts.length - 1 || p.fix) return p;
     for (const c of cores) {
       const d = haversine([c.lon, c.lat], [p.lon, p.lat]);
       if (d < c.r + 250) {
@@ -1878,9 +1909,337 @@ function shapeAvoidingCores(start, target, theta, detour, spec, shape, cores) {
   return pushOutOfCores(shapePoints(start, target, theta, detour, spec, shape), cores);
 }
 
+/* ---------- Besonderheiten (Freitext) ----------
+   Das Feld versteht feste Begriffe, keine beliebigen Sätze. Wegarten (Schotter, Pfade, Treppen, Verkehr, Ampeln)
+   schalten Werte im Routing-Profil um; Orte (Windrad, Kanal, See, Burg …) werden in OpenStreetMap gesucht und
+   als Zwischenziel in die Runde gelegt. Was nicht verstanden wird, steht unter dem Feld.
+   Unverändert bleiben: gesperrte Stadtkerne, „Im Dunkeln“, Belagsregeln, beim Rennrad nur Asphalt. */
+const fold = s => s.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+const INFL = ['', 'e', 'n', 'en', 's', 'es', 'er', 'ern', 'r', 'em', 'm'];
+
+// Wegarten: prefix = auch zusammengesetzte Wörter wie „Schotterwege“, „Feldwegen“
+const WISH_WAYS = [
+  { key: 'gravel', prefix: true, words: ['schotter', 'kies', 'splitt', 'wassergebunden', 'forstweg', 'forststrass', 'forstrass', 'treidelpfad', 'kanalweg'] },
+  { key: 'unpaved', prefix: true, words: ['feldweg', 'waldweg', 'wiesenweg', 'unbefestigt', 'naturweg', 'erdweg', 'naturboden', 'grasweg'] },
+  { key: 'paths', prefix: true, words: ['pfad', 'trampelpfad', 'singletrail', 'trail', 'wurzel', 'schmal'] },
+  { key: 'wide', prefix: true, words: ['breit'] },
+  { key: 'steps', words: ['treppe', 'stufe', 'treppenstufe'] },
+  { key: 'quiet', words: ['verkehr', 'autos', 'ruhig', 'verkehrsarm', 'autofrei', 'strassenverkehr'] },
+  { key: 'roads', prefix: true, words: ['hauptstrass', 'bundesstrass', 'landstrass', 'kreisstrass', 'strasse', 'strassen'] },
+  { key: 'signals', prefix: true, words: ['ampel'] },
+  { key: 'asphalt', prefix: true, words: ['asphalt', 'teer', 'befestigt'] },
+  { key: 'towns', prefix: true, words: ['innenstadt', 'innenstaedt', 'stadtkern', 'ortskern', 'altstadt', 'stadtzentrum', 'zentrum', 'ortsdurchfahrt'] },
+  { key: 'light', prefix: true, words: ['beleuchtet', 'beleuchtung', 'strassenlaterne', 'laterne', 'dunkel'] },
+  { key: 'climb', prefix: true, words: ['hoehenmeter', 'huegelig', 'bergig', 'steil', 'anstieg', 'bergauf', 'steigung'] }
+];
+
+// Orte in OpenStreetMap. kind: point = Punkt, line = an Gewässern entlang (zwei Punkte), area = Mitte einer Fläche.
+// near: so nah (m) muss die Route am Ziel vorbeiführen. named: Wortenden, an denen ein Eigenname erkannt wird („Brombachsee“).
+const WISH_PLACES = [
+  { key: 'wind', label: 'Windrad', words: ['windrad', 'windraeder', 'windkraft', 'windkraftanlage', 'windenergieanlage', 'windpark', 'windturbine', 'windkraftwerk', 'windanlage', 'windenergie'],
+    q: ['nwr["generator:source"="wind"]'], kind: 'point', near: 400 },
+  { key: 'tower', label: 'Aussichtsturm', words: ['aussichtsturm', 'aussichtstuerme', 'aussichtswarte', 'turm', 'tuerme'],
+    q: ['nwr["tower:type"="observation"]'], kind: 'point', near: 200, named: ['turm', 'warte'] },
+  { key: 'view', label: 'Aussichtspunkt', words: ['aussicht', 'aussichtspunkt', 'ausblick', 'fernblick', 'panorama', 'weitblick'],
+    q: ['nwr["tourism"="viewpoint"]'], kind: 'point', near: 200 },
+  { key: 'castle', label: 'Burg/Schloss', words: ['burg', 'burgen', 'burgruine', 'ruine', 'schloss', 'schloesser', 'festung'],
+    q: ['nwr["historic"~"^(castle|ruins|fort)$"]'], kind: 'point', near: 250, named: ['burg', 'schloss', 'ruine'] },
+  { key: 'chapel', label: 'Kapelle/Kirche', words: ['kapelle', 'kirche', 'kloster', 'wallfahrtskirche'],
+    q: ['nwr["amenity"="place_of_worship"]'], kind: 'point', near: 150, named: ['kapelle', 'kirche', 'kloster'] },
+  { key: 'peak', label: 'Gipfel', words: ['gipfel', 'berg', 'berge', 'anhoehe', 'huegel', 'gipfelkreuz'],
+    q: ['node["natural"="peak"]'], kind: 'point', near: 200, named: ['berg', 'kopf'] },
+  { key: 'cross', label: 'Wegkreuz', words: ['kreuz', 'wegkreuz', 'marterl', 'bildstock', 'flurkreuz'],
+    q: ['node["historic"~"^(wayside_cross|wayside_shrine)$"]', 'node["man_made"="cross"]'], kind: 'point', near: 100 },
+  { key: 'canal', label: 'Kanal', words: ['kanal', 'kanaele', 'kanalufer'],
+    q: ['way["waterway"="canal"]'], kind: 'line', near: 120, named: ['kanal'] },
+  { key: 'river', label: 'Fluss', words: ['fluss', 'fluesse', 'flussufer', 'ufer', 'flusslauf'],
+    q: ['way["waterway"="river"]'], kind: 'line', near: 150 },
+  { key: 'stream', label: 'Bach', words: ['bach', 'baeche', 'bachlauf'],
+    q: ['way["waterway"="stream"]'], kind: 'line', near: 120, named: ['bach'] },
+  { key: 'lake', label: 'See', words: ['see', 'seen', 'weiher', 'teich', 'teiche', 'stausee', 'badesee', 'baggersee', 'seeufer', 'gewaesser', 'wasser'],
+    q: ['way["natural"="water"]["water"~"^(lake|pond|reservoir)$"]', 'relation["natural"="water"]["water"~"^(lake|reservoir)$"]'], kind: 'line', near: 150, named: ['see', 'weiher', 'teich'] },
+  { key: 'forest', label: 'Wald', words: ['wald', 'waelder', 'forst', 'waldgebiet'],
+    q: ['way["landuse"="forest"](if:length()>2000)', 'way["natural"="wood"](if:length()>2000)'], kind: 'area', near: 400, named: ['wald', 'forst', 'holz'] },
+  { key: 'park', label: 'Park', words: ['park', 'parks', 'stadtpark', 'schlosspark', 'kurpark'],
+    q: ['way["leisure"="park"](if:length()>600)'], kind: 'area', near: 250, named: ['park'] },
+  { key: 'drink', label: 'Trinkwasser', words: ['trinkwasser', 'brunnen', 'trinkbrunnen', 'wasserstelle', 'wasserhahn'],
+    q: ['node["amenity"~"^(drinking_water|fountain|water_point)$"]'], kind: 'point', near: 60 },
+  { key: 'toilet', label: 'Toilette', words: ['toilette', 'wc', 'klo'],
+    q: ['nwr["amenity"="toilets"]'], kind: 'point', near: 80 },
+  { key: 'cafe', label: 'Einkehr', words: ['cafe', 'kaffee', 'baecker', 'baeckerei', 'eisdiele', 'biergarten', 'kiosk', 'einkehr', 'einkehren', 'gasthaus', 'gasthof', 'wirtshaus', 'restaurant'],
+    q: ['nwr["amenity"~"^(cafe|biergarten|ice_cream|restaurant|pub)$"]', 'nwr["shop"="bakery"]'], kind: 'point', near: 60 },
+  { key: 'shelter', label: 'Hütte', words: ['huette', 'huetten', 'schutzhuette', 'unterstand', 'grillplatz'],
+    q: ['nwr["amenity"="shelter"]'], kind: 'point', near: 100 },
+  { key: 'mill', label: 'Mühle', words: ['muehle', 'windmuehle', 'wassermuehle'],
+    q: ['nwr["man_made"~"^(windmill|watermill)$"]'], kind: 'point', near: 150, named: ['muehle'] },
+  { key: 'spring', label: 'Quelle', words: ['quelle'],
+    q: ['node["natural"="spring"]'], kind: 'point', near: 100 },
+  { key: 'waterfall', label: 'Wasserfall', words: ['wasserfall'],
+    q: ['node["waterway"="waterfall"]'], kind: 'point', near: 100 },
+  { key: 'cave', label: 'Höhle', words: ['hoehle'],
+    q: ['node["natural"="cave_entrance"]'], kind: 'point', near: 150 },
+  { key: 'playground', label: 'Spielplatz', words: ['spielplatz'],
+    q: ['nwr["leisure"="playground"]'], kind: 'point', near: 60 },
+  { key: 'quarry', label: 'Steinbruch', words: ['steinbruch'],
+    q: ['way["landuse"="quarry"]'], kind: 'area', near: 300 }
+];
+const WISH_FILL = new Set(('ich moechte moechten will wuerde wuerden gern gerne bitte mal auch sind ist sein seien erlaubt erlauben ok okay in ordnung am an im ' +
+  'ein eine einem einen einer eines der die das den dem des zum zur vorbei vorbeilaufen vorbeifahren vorbeikommen laufen fahren rennen joggen entlang ' +
+  'durch ueber mit zu bei beim von vom nach auf wo es geht gehen dabei unterwegs route runde strecke tour weg wege wegen zb etwa moeglichst wenn moeglich ' +
+  'vielleicht schoen schoene schoenen flach flache flachen eben ebene ebenen sehr viel viele wenig wenige nur gut gute kurz kurze lang lange so da dort ' +
+  'hier hin zurueck wieder mich mir mein meine meinen kein keine keinen keiner nicht ohne bloss oder und aber auch idealerweise vorzugsweise passt ' +
+  'irgendwo irgendwie einmal kommen komme gibt man soll sollte sollen darf duerfen kann koennen ganz bisschen etwas richtung').split(' '));
+const PLACE_PREP = /\b(am|an|ans|zum|zur|beim|bei|vorbei|entlang|ueber|durch|auf|um|rund)\b/;
+const OPTIONAL_RE = /\b(zb|zum beispiel|etwa|gern|gerne|wenn moeglich|wenn es geht|wenn es passt|moeglichst|vielleicht|optional|idealerweise|vorzugsweise)\b/;
+const NEG_RE = /\b(kein\w*|nicht|ohne|vermeid\w*|meid\w*|weg von|auslassen|umgeh\w*|bloss nicht)\b/;
+
+function matchWord(t, w, prefix) {
+  return t === w || (t.startsWith(w) && (prefix || INFL.includes(t.slice(w.length))));
+}
+
+function parseWishes(text, mode) {
+  const W = { text: (text || '').trim().slice(0, 300), prof: {}, places: [], chips: [], notes: [], unknown: [] };
+  if (!W.text) return W;
+  const flat = fold(W.text).replace(/\bz\.\s?b\./g, 'zb').replace(/\b(bzw|ca|evtl|ggf|usw|u\.a)\./g, '$1');
+  const orig = W.text.replace(/\bz\.\s?[bB]\./g, 'zb').replace(/\b(bzw|ca|evtl|ggf|usw|u\.a)\./gi, '$1');
+  const clauses = flat.split(/[,;.!?\n]+/), origClauses = orig.split(/[,;.!?\n]+/);
+  const ways = new Set(), negWays = new Set();
+  clauses.forEach((cl, ci) => {
+    const optional = OPTIONAL_RE.test(cl);
+    const segs = cl.split(/\b(?:und|aber|sondern|oder|sowie|ausserdem)\b/);
+    const origSegs = (origClauses[ci] || '').split(/\b(?:und|aber|sondern|oder|sowie|außerdem|ausserdem)\b/i);
+    segs.forEach((seg, si) => {
+      const neg = NEG_RE.test(seg);
+      const toks = seg.match(/\p{L}[\p{L}-]*/gu) || [];
+      const origToks = (origSegs[si] || '').match(/\p{L}[\p{L}-]*/gu) || [];
+      let hit = false;
+      toks.forEach((t, ti) => {
+        // längster Treffer gewinnt („Waldweg“ ist eine Wegart, „Wald“ ein Ort)
+        let best = null;
+        for (const e of WISH_WAYS) for (const w of e.words) if (matchWord(t, w, e.prefix) && (!best || w.length > best.len)) best = { type: 'way', e, len: w.length };
+        for (const e of WISH_PLACES) for (const w of e.words) if (matchWord(t, w, false) && (!best || w.length > best.len)) best = { type: 'place', e, len: w.length };
+        if (!best) {
+          // Eigenname wie „Brombachsee“ oder „Ludwigskanal“: großgeschrieben und endet auf eine Ortsart
+          // Nur mit Ortsangabe davor („am“, „zum“, „vorbei“ …), damit „in Regensburg“ keine Burg sucht
+          const o = origToks[ti] || '';
+          if (/^\p{Lu}/u.test(o) && PLACE_PREP.test(seg)) for (const e of WISH_PLACES) for (const h of e.named || [])
+            for (const i of INFL) if (t.endsWith(h + i) && t.length >= h.length + i.length + 3) best = { type: 'place', e, len: h.length, name: o };
+        }
+        if (!best) return;
+        hit = true;
+        if (best.type === 'way') (neg ? negWays : ways).add(best.e.key);
+        else if (neg) W.notes.push(`${best.e.label} meiden geht nicht`);
+        else if (!W.places.some(p => p.key === best.e.key && p.name === best.name)) W.places.push({ ...best.e, name: best.name || '', optional });
+      });
+      const words = toks.filter(t => t.length >= 3 && !WISH_FILL.has(t));
+      if (!hit && words.length) W.unknown.push((origSegs[si] || seg).trim());
+    });
+  });
+  const chip = (t, ok = true) => W.chips.push({ t, ok });
+  const std = t => W.notes.push(t);
+  // Wegarten je nach Sportart in Profilwerte übersetzen
+  if (mode === 'laufen') {
+    if (ways.has('unpaved') || ways.has('paths')) { W.prof.gravel = 2; chip('Feld- und Waldwege erlaubt'); }
+    else if (ways.has('gravel')) { W.prof.gravel = 1; chip('Schotterwege erlaubt'); }
+    if (negWays.has('gravel') || negWays.has('unpaved') || ways.has('asphalt')) std('Nur befestigte Wege ist schon Standard');
+  } else if (mode === 'trail') {
+    if (negWays.has('gravel')) { W.prof.nogravel = 1; chip('Schotter- und Forststraßen meiden'); }
+    if (ways.has('paths') || negWays.has('wide')) { W.prof.trailpref = 1; chip('Schmale Pfade bevorzugt'); }
+    else if (ways.has('wide') || negWays.has('paths')) { W.prof.trailpref = 2; chip('Breite Wege bevorzugt'); }
+    if (ways.has('gravel') || ways.has('unpaved')) std('Schotter-, Feld- und Waldwege sind beim Trail Run schon erlaubt');
+    if (negWays.has('asphalt')) std('Wenig Asphalt ist beim Trail Run schon Standard');
+    if (ways.has('asphalt')) std('Trail Run bleibt bei möglichst wenig Asphalt');
+  } else {
+    if (ways.has('gravel') || ways.has('unpaved') || ways.has('paths')) std('Beim Rennrad bleibt es bei reinem Asphalt');
+  }
+  if (negWays.has('steps')) {
+    if (mode === 'rennrad') std('Treppen sind beim Rennrad schon gesperrt');
+    else { W.prof.nosteps = 1; chip('Keine Treppen'); }
+  }
+  if (ways.has('quiet') || negWays.has('quiet') || negWays.has('roads')) { W.prof.quiet = 1; chip('Wenig Verkehr'); }
+  if (negWays.has('signals')) {
+    if (mode === 'trail') std('Ampeln spielen beim Trail Run kaum eine Rolle');
+    else { W.prof.nosignals = 1; chip('Ampeln meiden'); }
+  }
+  if (ways.has('towns') || negWays.has('towns')) std(mode === 'trail' ? 'Innenstädte sind beim Trail Run immer gesperrt'
+    : 'Innenstädte: dafür gibt es oben den Schalter unter „Wegwahl“');
+  if (ways.has('light') || negWays.has('light')) std(mode === 'laufen' ? 'Beleuchtung: dafür gibt es oben den Schalter „Im Dunkeln“' : 'Beleuchtung gibt es nur beim Laufen');
+  if (ways.has('climb') || negWays.has('climb')) std('Höhenmeter stellst du oben ein');
+  // Höchstens drei Orte, Pflichtziele zuerst
+  W.places.sort((a, b) => a.optional - b.optional);
+  W.places = W.places.slice(0, 3);
+  for (const p of W.places) chip((p.kind === 'line' ? `Am ${p.name || p.label} entlang` : p.name || p.label) + (p.optional ? ' · wenn es passt' : ''));
+  return W;
+}
+
+/* Ziele in OpenStreetMap suchen (Overpass). Ein Aufruf pro Ortsart, Ergebnisse bleiben bis zum Neuladen im Speicher. */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+const placeCache = new Map();
+async function overpass(query) {
+  let lastErr;
+  for (const [i, url] of OVERPASS.entries()) {
+    // Antwortet der Hauptserver nicht schnell, übernimmt der zweite
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), i ? 25000 : 12000);
+    try {
+      const r = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return (await r.json()).elements || [];
+    } catch (e) { lastErr = e; } finally { clearTimeout(t); }
+  }
+  throw lastErr;
+}
+function placeQuery(P, s, R) {
+  const around = `(around:${Math.round(R)},${s.lat.toFixed(5)},${s.lon.toFixed(5)})`;
+  const nm = P.name ? `["name"~"${P.name.replace(/[^\p{L}\- ]/gu, '')}",i]` : '';
+  // Bedingungen wie (if:length()>2000) müssen hinter dem Umkreis stehen
+  const sels = P.q.map(q => { const m = q.match(/^(.*?)(\(if:.*\))?$/); return m[1] + nm + around + (m[2] || '') + ';'; }).join('');
+  if (P.kind === 'line') {
+    const dLat = R / 111000, dLon = R / (111000 * Math.cos(s.lat * Math.PI / 180));
+    const bb = [s.lat - dLat, s.lon - dLon, s.lat + dLat, s.lon + dLon].map(v => v.toFixed(4)).join(',');
+    return `[out:json][timeout:25];(${sels});out tags geom(${bb}) 120;`;
+  }
+  return `[out:json][timeout:25];(${sels});out tags center 200;`;
+}
+// Liefert je Ortsart eine Liste von Kandidaten: { lat, lon, name } bzw. bei Gewässern alle Linienpunkte
+async function findPlaces(specs, hiKm, cores) {
+  const s = state.start;
+  const reach = reachKm(hiKm) * 1000 * 1.35;
+  const out = [];
+  for (const P of specs) {
+    const key = [P.key, P.name, s.lat.toFixed(3), s.lon.toFixed(3), Math.round(reach / 500)].join(':');
+    let list = placeCache.get(key), error = null;
+    if (!list) {
+      try {
+        const els = await overpass(placeQuery(P, s, reach));
+        list = [];
+        for (const e of els) {
+          const name = (e.tags && e.tags.name) || '';
+          if (P.kind === 'line') {
+            const geoms = e.geometry ? [e.geometry] : (e.members || []).map(m => m.geometry).filter(Boolean);
+            for (const g of geoms) for (const p of g) if (p && p.lat != null) list.push({ lat: p.lat, lon: p.lon, name });
+          } else {
+            const c = e.center || e;
+            if (c.lat != null) list.push({ lat: c.lat, lon: c.lon, name });
+          }
+        }
+        placeCache.set(key, list);
+      } catch (e) { error = e; list = []; }
+    }
+    // Ziele in gesperrten Stadtkernen kommen nicht in Frage
+    const ok = list.filter(p => !cores.some(c => haversine([c.lon, c.lat], [p.lon, p.lat]) < c.r + 100))
+      .map(p => ({ ...p, d: haversine([s.lon, s.lat], [p.lon, p.lat]) / 1000 }));
+    out.push({ spec: P, list: ok, error, inCores: list.length - ok.length });
+  }
+  return out;
+}
+
+// So weit darf ein Ziel höchstens vom Start weg sein, damit eine Runde dieser Länge es erreicht
+const reachKm = km => (state.shape === 'oab' ? km / 2 : km / Math.PI) / MODES[state.mode].detour * 0.95;
+const bearingTo = (a, b) => Math.atan2((b.lon - a.lon) * Math.cos(a.lat * Math.PI / 180), b.lat - a.lat);
+
+// Ziele für einen Kandidaten wählen (i = Nummer des Kandidaten, damit die Varianten verschiedene Ziele nehmen)
+function choosePlaces(found, targetKm, i) {
+  const s = state.start, dmax = reachKm(targetKm), fixed = [], missing = [];
+  const dirOk = p => state.dir === 'any' || Math.abs(((bearingTo(s, p) * 180 / Math.PI - state.dir + 540) % 360) - 180) < 70;
+  found.forEach((F, k) => {
+    const P = F.spec;
+    if (P.optional && (i + k) % 2) return;                           // „wenn es passt“: nur bei jedem zweiten Kandidaten
+    const pool = F.list.filter(p => p.d <= dmax);
+    if (!pool.length) { if (!P.optional) missing.push(P); return; }
+    // Am liebsten in 30–100 % der Reichweite und in der gewählten Richtung; nah am Start zählt auch
+    const rank = p => Math.abs(p.d - dmax * 0.65) / dmax + (dirOk(p) ? 0 : 1);
+    const sorted = pool.slice().sort((a, b) => rank(a) - rank(b));
+    // Verschiedene Kandidaten nehmen verschiedene Ziele (mindestens 600 m auseinander)
+    const picks = [];
+    for (const p of sorted) { if (picks.every(q => haversine([q.lon, q.lat], [p.lon, p.lat]) > 600)) picks.push(p); if (picks.length >= 4) break; }
+    const p1 = picks[i % picks.length];
+    const meta = { key: P.key, label: p1.name || P.name || P.label, near: P.near, optional: !!P.optional, fix: true };
+    fixed.push({ lat: p1.lat, lon: p1.lon, ...meta });
+    if (P.kind === 'line' && state.shape !== 'oab') {
+      // Ein Stück am Wasser entlang: zweiter Punkt auf derselben Linie, etwa so weit vom Start weg wie der erste
+      const along = Math.min(4, Math.max(0.6, targetKm * 0.15));
+      let p2 = null, bs = Infinity;
+      for (const p of pool) {
+        if (p1.name && p.name && p.name !== p1.name) continue;
+        const dd = haversine([p1.lon, p1.lat], [p.lon, p.lat]) / 1000;
+        const sc = Math.abs(dd - along) + Math.abs(p.d - p1.d) * 0.7;
+        if (dd > along * 0.5 && sc < bs) { bs = sc; p2 = p; }
+      }
+      if (p2) fixed.push({ lat: p2.lat, lon: p2.lon, ...meta });
+    }
+  });
+  return { fixed, missing };
+}
+
+// Rundkurs durch feste Ziele: die Ellipse so drehen, dass das Ziel auf ihr liegt, dann die nächsten Formpunkte ersetzen
+function shapeWithFixed(start, targetKm, detour, spec, shape, fixed, cores) {
+  if (shape === 'oab') return [start, fixed[0], start];
+  const F = { lat: fixed.reduce((a, p) => a + p.lat, 0) / fixed.length, lon: fixed.reduce((a, p) => a + p.lon, 0) / fixed.length };
+  const d = haversine([start.lon, start.lat], [F.lon, F.lat]) / 1000;
+  const r = targetKm / (2 * Math.PI * detour);
+  const theta = bearingTo(start, F) + (spec.cw ? 1 : -1) * Math.acos(Math.min(1, d / (2 * r)));
+  const inner = shapePoints(start, targetKm, theta, detour, spec, 'loop').slice(1, -1);
+  for (const f of fixed) {
+    let bi = -1, bd = Infinity;
+    inner.forEach((p, k) => { if (p.fix) return; const dd = haversine([p.lon, p.lat], [f.lon, f.lat]); if (dd < bd) { bd = dd; bi = k; } });
+    if (bi >= 0) inner[bi] = f; else inner.push(f);
+  }
+  // Umlaufreihenfolge um die Mitte wiederherstellen, damit kein Zickzack entsteht
+  const all = [start, ...inner];
+  const cLat = all.reduce((a, p) => a + p.lat, 0) / all.length, cLon = all.reduce((a, p) => a + p.lon, 0) / all.length;
+  const k = Math.cos(cLat * Math.PI / 180);
+  const ang = p => Math.atan2(p.lat - cLat, (p.lon - cLon) * k);
+  const a0 = ang(start), dir = spec.cw ? -1 : 1, TAU = 2 * Math.PI;
+  const norm = x => ((x % TAU) + TAU) % TAU;
+  inner.sort((p, q) => norm(dir * (ang(p) - a0)) - norm(dir * (ang(q) - a0)));
+  const pts = [start, ...inner, start];
+  return cores.length ? pushOutOfCores(pts, cores) : pts;
+}
+
+// Wie nah führt die Route an jedem Ziel vorbei? Zwei Punkte am selben Gewässer zählen als ein Ziel.
+function wishCheck(route, fixed) {
+  const res = [];
+  for (const f of fixed) {
+    let best = Infinity;
+    for (const c of route.coords) {
+      if (Math.abs(c[1] - f.lat) > 0.03) continue;
+      const dd = haversine(c, [f.lon, f.lat]);
+      if (dd < best) best = dd;
+    }
+    const prev = res.find(x => x.key === f.key && x.label === f.label);
+    if (prev) { prev.d = Math.max(prev.d, best); prev.ok = prev.d <= f.near; }
+    else res.push({ key: f.key, label: f.label, near: f.near, optional: f.optional, d: best, ok: best <= f.near, lat: f.lat, lon: f.lon });
+  }
+  return res;
+}
+
+// Anzeige unter dem Feld: was erkannt wurde und was nicht
+function renderWishOut() {
+  const W = parseWishes($('wish').value, state.mode);
+  const out = $('wish-out');
+  if (!W.text) { out.innerHTML = ''; out.hidden = true; return W; }
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const parts = W.chips.map(c => `<span class="wchip">${esc(c.t)}</span>`);
+  W.notes.forEach(n => parts.push(`<span class="wchip note">${esc(n)}</span>`));
+  let html = parts.length ? `<span class="wrow">${parts.join('')}</span>` : '';
+  if (W.unknown.length) html += `<span class="wunk">Nicht verstanden: ${W.unknown.map(u => '„' + esc(u) + '“').join(', ')}</span>`;
+  if (!W.chips.length && !W.notes.length) html += `<span class="wunk">Versuch es mit Begriffen wie Schotterwege, Pfade, keine Treppen, wenig Verkehr, Windrad, See, Kanal, Burg oder Aussichtsturm.</span>`;
+  out.innerHTML = html;
+  out.hidden = false;
+  return W;
+}
+const WISH_EXAMPLES = {
+  laufen: 'z. B. „Flache Schotterwege sind erlaubt, gerne am Kanal“ oder „keine Treppen“',
+  trail: 'z. B. „Ich möchte an einem Windrad vorbeilaufen“ oder „schmale Pfade“',
+  rennrad: 'z. B. „Wenig Verkehr, an einem See vorbei“ oder „Ampeln meiden“'
+};
+
 const routeOpts = () => {
   const cores = blockedCores();
+  const wish = parseWishes($('wish').value, state.mode);
   return {
+    wish, ...wish.prof,
     flat: state.hills === 'flat',
     towns: !!(MODES[state.mode].towns && state.towns),
     dark: !!(MODES[state.mode].dark && state.dark),
@@ -1916,8 +2275,10 @@ bindSeg('dir', 'dir');
 // opts.flat: Steigungen meiden · opts.lenient: Laufen-Rückfall, unbefestigte Wege nur teuer statt gesperrt
 // opts.towns: Innenstädte erlaubt (sonst werden Ortskerne möglichst umgangen)
 const profileCache = {}, profilePending = {};
+const WISH_PARAMS = ['gravel', 'nogravel', 'trailpref', 'nosteps', 'quiet', 'nosignals'];
 async function profileId(mode, opts, force = false) {
-  const key = `${mode}:${opts.flat ? 'flat' : 'any'}:${opts.lenient ? 'lenient' : 'strict'}:${opts.towns ? 'towns' : 'notowns'}:${opts.dark ? 'dark' : 'day'}:v6`;
+  const key = `${mode}:${opts.flat ? 'flat' : 'any'}:${opts.lenient ? 'lenient' : 'strict'}:${opts.towns ? 'towns' : 'notowns'}:${opts.dark ? 'dark' : 'day'}:`
+    + WISH_PARAMS.map(k => opts[k] || 0).join('') + ':v7';
   if (!force) {
     if (profileCache[key]) return profileCache[key];
     try { const s = sessionStorage.getItem('schleife:pid:' + key); if (s) return (profileCache[key] = s); } catch {}
@@ -1932,6 +2293,13 @@ async function uploadProfile(mode, opts, key) {
   if (opts.lenient) text = text.replace(/assign strict = 1/, 'assign strict = 0');
   if (opts.towns) text = text.replace(/assign avoidtown = 1/, 'assign avoidtown = 0');
   if (opts.dark) text = text.replace(/assign dark = 0/, 'assign dark = 1');
+  // Besonderheiten: fehlt der Wert im Profil, ist die Profildatei auf dem Server noch die alte
+  for (const k of WISH_PARAMS) {
+    if (!opts[k]) continue;
+    const re = new RegExp(`assign ${k} = 0`);
+    if (!re.test(text)) throw new RouteError('Profil veraltet');
+    text = text.replace(re, `assign ${k} = ${opts[k]}`);
+  }
   const r = await fetch(`${BROUTER}/profile`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: text });
   const j = await r.json();
   if (!j.profileid) throw new Error(j.error || 'Profil konnte nicht geladen werden');
@@ -2053,7 +2421,7 @@ function parseRoute(gj) {
   for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + haversine(coords[i - 1], coords[i]));
   const segClass = new Array(Math.max(0, coords.length - 1)).fill('unknown');
   const surface = { asphalt: 0, paved: 0, unpaved: 0, unknown: 0 };
-  let urban = 0, lit = 0;
+  let urban = 0, lit = 0, gravel = 0;
   const msgs = p.messages || [];
   if (msgs.length > 1) {
     const h = msgs[0], iLon = h.indexOf('Longitude'), iLat = h.indexOf('Latitude'), iD = h.indexOf('Distance'), iT = h.indexOf('WayTags');
@@ -2063,6 +2431,7 @@ function parseRoute(gj) {
       const cls = classify(row[iT] || '');
       surface[cls] += +row[iD] || 0;
       if (isUrban(row[iT] || '')) urban += +row[iD] || 0;
+      if (cls === 'unpaved' && /(^| )(surface=(compacted|fine_gravel|gravel)|tracktype=grade[12])( |$)/.test(row[iT] || '')) gravel += +row[iD] || 0;
       if (/(^| )lit=(yes|24\/7|automatic|sunset-sunrise)( |$)/.test(row[iT] || '')) lit += +row[iD] || 0;
       const lon = +row[iLon], lat = +row[iLat];
       let j = ci;
@@ -2073,7 +2442,7 @@ function parseRoute(gj) {
     for (let k = ci; k < segClass.length; k++) segClass[k] = last;
   }
   return {
-    coords, cum, segClass, surface, urban, lit,
+    coords, cum, segClass, surface, urban, lit, gravel,
     length: +p['track-length'] || cum[cum.length - 1],
     ascent: +p['filtered ascend'] || 0
   };
@@ -2271,8 +2640,9 @@ function findNearSpurs(route, step = 25, tol = 70, minLen = 300) {
 // Wegpunkte, die einen Stichweg erzwingen, an dessen Abzweig verschieben und neu routen.
 async function removeSpurs(route, pts, ro, minLen = 0) {
   if (state.shape === 'oab') return { route, pts, spur: 0 };
+  const wanted = (s, list) => list.some(p => p.fix && haversine([p.lon, p.lat], s.tip) < Math.max(300, p.near));
   for (let round = 0; round < 3; round++) {
-    const spurs = findSpurs(route).filter(s => s.len > 30);
+    const spurs = findSpurs(route).filter(s => s.len > 30 && !wanted(s, pts));
     if (!spurs.length) return { route, pts, spur: 0 };
     // Bliebe nach dem Kürzen keine Runde im Längenbereich übrig, lieber gleich eine neue Form probieren.
     if (route.length - spurs.reduce((a, s) => a + s.len, 0) < Math.max(minLen, route.length * 0.4)) break;
@@ -2281,6 +2651,7 @@ async function removeSpurs(route, pts, ro, minLen = 0) {
     for (const s of spurs) {
       let bi = -1, bd = Infinity;
       for (let i = 1; i < next.length - 1; i++) {
+        if (next[i].fix) continue;
         const d = haversine([next[i].lon, next[i].lat], s.tip);
         if (d < bd) { bd = d; bi = i; }
       }
@@ -2294,7 +2665,7 @@ async function removeSpurs(route, pts, ro, minLen = 0) {
       pts = next;
     } catch { break; }
   }
-  const rest = findSpurs(route).filter(s => s.len > 30).reduce((a, s) => a + s.len, 0);
+  const rest = findSpurs(route).filter(s => s.len > 30 && !wanted(s, pts)).reduce((a, s) => a + s.len, 0);
   return { route, pts, spur: rest };
 }
 
@@ -2307,12 +2678,13 @@ function touchesCore(route, cores) {
    Laufen:  nur Asphalt. Unbefestigt höchstens 3 %, und auch das nur, wenn es gar nicht anders geht.
    Trail:   möglichst wenig Asphalt. Über 30 % gilt als verbesserungswürdig, weniger ist immer besser.
    Rennrad: ausschließlich Asphalt; schon ein kurzes Stück anderer Belag macht die Route unbrauchbar. */
-function surfaceCheck(route) {
+function surfaceCheck(route, ro = {}) {
   const s = route.surface;
   const tot = Object.values(s).reduce((a, b) => a + b, 0) || 1;
   if (state.mode === 'rennrad') return { hard: tot - s.asphalt > 25, high: false, soft: 0 };
   if (state.mode === 'laufen') {
-    const unpaved = s.unpaved / tot;
+    // Besonderheit „Schotterwege erlaubt“: gut laufbarer Schotter zählt nicht als Mangel; „Feld- und Waldwege“: gar nichts Unbefestigtes
+    const unpaved = ro.gravel === 2 ? 0 : ro.gravel === 1 ? Math.max(0, s.unpaved - (route.gravel || 0)) / tot : s.unpaved / tot;
     const dark = state.dark && MODES.laufen.dark;
     return { hard: unpaved > 0.03, high: dark && route.lit / route.length < 0.3, soft: 10 * unpaved + 3 * (s.paved + s.unknown) / tot };
   }
@@ -2320,7 +2692,7 @@ function surfaceCheck(route) {
   return { hard: false, high: asph > 0.3, soft: 10 * asph };
 }
 
-async function buildCandidate(theta, seed, lo, hi, ro) {
+async function buildCandidate(theta, seed, lo, hi, ro, idx = 0) {
   const m = MODES[state.mode];
   // Ziel irgendwo in der Spanne statt immer genau in der Mitte
   const target = lo + (hi - lo) * (0.35 + Math.random() * 0.3);
@@ -2329,14 +2701,18 @@ async function buildCandidate(theta, seed, lo, hi, ro) {
   // pro Startpunkt (auf etwa 1 km gerundet) gelernt: um einen Stadtkern herum braucht es andere Werte als am Ortsrand
   const dkey = [state.mode, state.shape, state.start.lat.toFixed(2), state.start.lon.toFixed(2)].join(':');
   let detour = Math.min(2.2, Math.max(1.0, learned[dkey] || m.detour)), best = null, lastErr = null, reseed = 0;
+  // Besonderheiten: Ziele (Windrad, See …) für diesen Kandidaten
+  const { fixed, missing } = ro.found && ro.found.length ? choosePlaces(ro.found, target, idx) : { fixed: [], missing: [] };
   for (let attempt = 0; attempt < 3; attempt++) {
     const spec = randomShape(rng(seed + reseed * 7919), m.waypoints);
-    const pts0 = shapeAvoidingCores(state.start, target, theta, detour, spec, state.shape, ro.cores || []);
+    const pts0 = fixed.length
+      ? shapeWithFixed(state.start, target, detour, spec, state.shape, fixed, ro.cores || [])
+      : shapeAvoidingCores(state.start, target, theta, detour, spec, state.shape, ro.cores || []);
     try {
       const { route, pts, spur } = await removeSpurs(await routeVia(pts0, ro), pts0, ro, lo * 1000);
       const km = route.length / 1000;
       const miss = km < lo ? lo - km : km > hi ? km - hi : 0;
-      if (!spur && pts === pts0) {
+      if (!spur && pts === pts0 && !fixed.length) {
         const seen = Math.min(2.2, Math.max(1.0, detour * (km / target)));
         const all = store.get('detour', {});
         all[dkey] = all[dkey] ? all[dkey] * 0.7 + seen * 0.3 : seen;
@@ -2344,13 +2720,17 @@ async function buildCandidate(theta, seed, lo, hi, ro) {
       }
       // Sicherheitsnetz: führt die Route trotz Sperrzone durch einen Stadtkern, gilt sie als unbrauchbar
       const core = touchesCore(route, ro.cores || []);
-      const surf = surfaceCheck(route);
+      const surf = surfaceCheck(route, ro);
+      // Besonderheiten: nicht erreichte Pflichtziele zählen als Mangel, erreichte Wunschziele als Plus
+      const wish = wishCheck(route, fixed);
+      const wishMiss = missing.length + wish.filter(w => !w.ok && !w.optional).length;
+      const wishOpt = wish.filter(w => w.ok && w.optional).length;
       // Harte Mängel (Stichweg, Stadtkern, falscher Belag) wiegen schwerer als eine knapp verfehlte Länge
-      const score = (spur > 0 ? 1000 : 0) + (core ? 1000 : 0) + (surf.hard ? 1000 : 0) + miss + surf.soft / 4;
-      if (!best || score < best.score) best = { route, pts, km, miss, spur, core, surf, score };
-      if (!spur && !core && !surf.hard && !surf.high && miss === 0) break;
+      const score = (spur > 0 ? 1000 : 0) + (core ? 1000 : 0) + (surf.hard ? 1000 : 0) + wishMiss * 500 + miss + surf.soft / 4;
+      if (!best || score < best.score) best = { route, pts, km, miss, spur, core, surf, score, wish, wishMiss, wishOpt };
+      if (!spur && !core && !surf.hard && !surf.high && miss === 0 && !(wishMiss - missing.length)) break;
       // Bei einem Mangel eine neue Form versuchen; passt nur die Länge nicht, die Größe nachjustieren
-      if (spur > 0 || core || surf.hard || surf.high) reseed++;
+      if (spur > 0 || core || surf.hard || surf.high || wishMiss - missing.length) reseed++;
       if (!spur && !core) detour = Math.min(4, Math.max(0.5, detour * (km / target)));
       lastErr = null;
     } catch (e) {
@@ -2386,6 +2766,8 @@ function pickVariants(all, ro, relaxed, chosen = []) {
   const flawed = v => v.spur || v.core || v.surf.hard;
   if (state.mode === 'rennrad') pool = pool.filter(v => !v.surf.hard);        // Rennrad: nie anderer Belag
   if (chosen.length || all.some(v => !flawed(v))) pool = pool.filter(v => !flawed(v));
+  // Besonderheiten: streng nur Runden, die alle Pflichtziele erreichen, sofern es solche gibt
+  if (!relaxed && all.some(v => !v.wishMiss && !flawed(v))) pool = pool.filter(v => !v.wishMiss);
   // Wiederholungen: streng höchstens 70 % gleich wie eine frühere Runde, zum Auffüllen höchstens 85 %.
   // Nur wenn sonst gar nichts zu zeigen wäre, die unähnlichste.
   if (!relaxed) pool = pool.filter(v => v.simHist <= 0.7);
@@ -2406,6 +2788,8 @@ function pickVariants(all, ro, relaxed, chosen = []) {
       let s = -4 * Math.max(v.simHist, simPick);
       if (v.spur) s -= 20;
       if (v.miss > 0) s -= 3 + v.miss;
+      s -= 6 * (v.wishMiss || 0);
+      s += 1.5 * (v.wishOpt || 0);
       // Belag: Laufen möglichst nur Asphalt, Trail möglichst wenig Asphalt
       s -= (state.mode === 'trail' ? 0.8 : 1.5) * v.surf.soft;
       if (state.hills === 'hilly') s += 2 * climbRank(v);
@@ -2441,6 +2825,27 @@ async function generate() {
   clearVariants();
   const gen = state.gen;
   const stale = () => gen !== state.gen;
+  const changedMsg = 'Die Einstellungen wurden während der Berechnung geändert. Tippe nochmal auf „Routen erstellen“.';
+  // Besonderheiten: Ziele in OpenStreetMap suchen (einmal pro Klick, danach aus dem Speicher)
+  const wishNotes = [];
+  if (ro.wish.places.length) {
+    setStatus(`Suche ${ro.wish.places.map(p => p.name || p.label).join(', ')} in der Nähe …`);
+    ro.found = await findPlaces(ro.wish.places, hi, ro.cores);
+    if (stale()) { setBusy(false); setStatus(changedMsg); return; }
+    const dmax = reachKm(hi);
+    for (const F of ro.found) {
+      const nm = F.spec.name || F.spec.label;
+      if (F.error && !F.list.length) wishNotes.push(`${nm}: Die Suche in OpenStreetMap ist gerade nicht erreichbar.`);
+      else if (!F.list.length) wishNotes.push(F.inCores ? `${nm}: Nur in gesperrten Stadtkernen gefunden.` : `${nm}: In der Umgebung nichts gefunden.`);
+      else {
+        const near = Math.min(...F.list.map(p => p.d));
+        if (near > dmax) {
+          const need = (state.shape === 'oab' ? near * 2 : near * Math.PI) * MODES[state.mode].detour;
+          wishNotes.push(`${nm}: Das nächste ist ${fmtKm(near)} km entfernt, dafür braucht es etwa ${fmtKm(need, 0)} km.`);
+        }
+      }
+    }
+  }
   // Ein einziger Countdown: so lange dauert der Klick höchstens; sind die Varianten früher fertig, endet er früher
   const until = Date.now() + timeFor(CLICK_REQUESTS) + 8000;
   const tick = () => {
@@ -2449,7 +2854,7 @@ async function generate() {
   };
   tick();
   const ticker = setInterval(tick, 1000);
-  const results = await Promise.allSettled(thetas.map(th => buildCandidate(th, Math.floor(Math.random() * 2 ** 31), lo, hi, ro)));
+  const results = await Promise.allSettled(thetas.map((th, i) => buildCandidate(th, Math.floor(Math.random() * 2 ** 31), lo, hi, ro, i)));
   let all = results.filter(r => r.status === 'fulfilled').map(r => r.value);
   const errors = results.filter(r => r.status === 'rejected').map(r => r.reason);
   const skip = skipFor((lo + hi) / 2);
@@ -2463,7 +2868,7 @@ async function generate() {
   // Weniger als drei gute? Mit dem restlichen Kontingent dieses Klicks nachrechnen (ohne zusätzliche Wartezeit)
   for (let extra = 0; list.length < 3 && routeBudget.left > 0 && extra < 12 && !stale(); extra++) {
     try {
-      const v = await buildCandidate(randomThetas(1)[0], Math.floor(Math.random() * 2 ** 31), lo, hi, ro);
+      const v = await buildCandidate(randomThetas(1)[0], Math.floor(Math.random() * 2 ** 31), lo, hi, ro, count + extra);
       prep(v);
       all.push(v);
       list = pickVariants(all, ro, false);
@@ -2476,13 +2881,17 @@ async function generate() {
   // Start, Sportart oder Optionen wurden während der Berechnung geändert: alte Ergebnisse nicht zeigen
   if (stale()) {
     setBusy(false);
-    setStatus('Die Einstellungen wurden während der Berechnung geändert. Tippe nochmal auf „Routen erstellen“.');
+    setStatus(changedMsg);
     return;
   }
   // Immer noch keine drei: mit den nächstbesten auffüllen (knapp außerhalb der Länge oder einer früheren ähnlich)
   if (list.length < 3) list = pickVariants(all, ro, true, list);
   setBusy(false);
   if (!list.length) {
+    if (errors.some(e => e && e.message === 'Profil veraltet')) {
+      setStatus('Die Profildateien auf dem Server sind noch die alten. Bitte auch den Ordner „profiles“ neu hochladen.', true);
+      return;
+    }
     const onlyBadSurface = state.mode === 'rennrad' && all.some(v => v.surf && v.surf.hard);
     setStatus(onlyBadSurface
       ? 'Hier wurde keine Runde gefunden, die komplett auf Asphalt bleibt. Versuch eine andere Länge, Richtung oder einen anderen Start.'
@@ -2504,6 +2913,11 @@ async function generate() {
         : list.length < 3
           ? 'Hier gibt es nur wenige verschiedene Wege. Eine andere Richtung oder Länge bringt mehr Auswahl.'
           : '');
+  // Besonderheiten: was nicht klappte, steht dabei
+  if (!list.some(v => v.wish && v.wish.some(w => !w.optional)) && ro.wish.places.some(p => !p.optional) && !wishNotes.length)
+    wishNotes.push('Keine Variante erreicht das gewünschte Ziel. Eine andere Länge oder Richtung hilft vielleicht.');
+  else if (list.some(v => v.wishMiss) && !wishNotes.length) wishNotes.push('Nicht jede Variante erreicht alle gewünschten Ziele, siehe Details.');
+  if (wishNotes.length) setStatus([$('status').textContent, ...wishNotes].filter(Boolean).join(' '));
   if (sheetMQ.matches && sheet.detent !== 'medium') setSheet('medium');
   selectVariant(0, true);
   revealResults();
@@ -2634,6 +3048,10 @@ function drawRoutes(fit) {
     }));
     next += every;
   }
+  for (const w of v.wish || []) if (w.ok) kmLayer.addLayer(L.marker([w.lat, w.lon], {
+    interactive: false, keyboard: false, zIndexOffset: 1000,
+    icon: L.divIcon({ className: '', html: `<span class="wishmark">${escapeHtml(w.label)}</span>`, iconSize: [0, 0] })
+  }));
   $('maplegend').hidden = false;
   if (fit) {
     const all = L.latLngBounds(ll);
@@ -2652,6 +3070,13 @@ function renderDetail() {
     `<span><i style="background:${SURF[x.k].color}"></i>${SURF[x.k].label} ${x.pct < 1 ? '<1' : Math.round(x.pct)} %</span>`).join('');
   const showLit = MODES[state.mode].dark && state.dark;
   $('detail-lit').hidden = !showLit;
+  const W = parseWishes($('wish').value, state.mode);
+  const wl = [...(v.wish || []).map(w => w.ok
+    ? `<span><b>✓ ${escapeHtml(w.label)}</b> · ${w.d < 30 ? 'direkt' : fmtNum(w.d) + ' m'}</span>`
+    : `<span class="miss"><b>✗ ${escapeHtml(w.label)}</b> · nicht erreicht</span>`),
+    ...W.chips.filter(c => !W.places.some(p => c.t.includes(p.name || p.label))).map(c => `<span><b>✓</b> ${escapeHtml(c.t)}</span>`)];
+  $('detail-wish').hidden = !wl.length;
+  $('detail-wish').innerHTML = wl.length ? 'Besonderheiten: ' + wl.join('') : '';
   if (showLit) $('detail-lit').innerHTML = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7.5 15h5M8.5 18h3M10 2a5 5 0 00-3 9c.6.5 1 1.3 1 2h4c0-.7.4-1.5 1-2a5 5 0 00-3-9z"/></svg><span><b>${Math.round(100 * v.route.lit / v.route.length)} %</b> der Strecke mit Straßenbeleuchtung</span>`;
   drawElevation();
 }
@@ -2774,6 +3199,8 @@ function shareUrl() {
     m: state.mode, s: `${s.lat.toFixed(5)},${s.lon.toFixed(5)}`, n: s.label, r: `${lo}-${hi}`,
     f: state.shape, h: state.hills, i: state.towns ? 1 : 0, d: state.dark ? 1 : 0, w: wp
   });
+  const b = $('wish').value.trim();
+  if (b) h.set('b', b.slice(0, 300));
   return location.origin + location.pathname + '#' + h.toString();
 }
 
@@ -2813,6 +3240,7 @@ async function loadFromHash() {
   $('towns').checked = state.towns;
   $('towns-sub').textContent = state.towns ? 'An: Routen dürfen auch durch Ortskerne führen' : 'Aus: Stadtkerne sind gesperrt, Ortsdurchfahrten werden gemieden';
   segSync.shape(); segSync.hills();
+  $('wish').value = (p.get('b') || '').slice(0, 300);
   setMode(mode, { keep: true });
   state.start = { lat: slat, lon: slon, label: p.get('n') || 'Geteilter Start', sub: '', fav: null };
   startMarker.setLatLng([slat, slon]);
@@ -2855,6 +3283,14 @@ if (!('switch' in HTMLInputElement.prototype) || touchUI) {
   document.querySelectorAll('.row').forEach(row => row.addEventListener('click', e => {
     if (performance.now() - lastScroll < 300) { e.preventDefault(); e.stopPropagation(); }
   }, true));
+}
+// Besonderheiten: Erkennung beim Tippen anzeigen; geänderter Text macht alte Varianten ungültig
+function sizeWish() { const t = $('wish'); t.style.height = 'auto'; t.style.height = Math.min(180, t.scrollHeight + 2) + 'px'; }
+{
+  let wt;
+  $('wish').addEventListener('input', () => { sizeWish(); clearTimeout(wt); wt = setTimeout(renderWishOut, 250); });
+  $('wish').addEventListener('change', () => { renderWishOut(); if (state.variants.length || state.busy) clearVariants(); });
+  $('wish').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('wish').blur(); } });
 }
 setMode(state.mode, { keep: true });
 renderStart();
