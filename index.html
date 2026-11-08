@@ -1920,15 +1920,18 @@ const INFL = ['', 'e', 'n', 'en', 's', 'es', 'er', 'ern', 'r', 'em', 'm'];
 // Wegarten: prefix = auch zusammengesetzte Wörter wie „Schotterwege“, „Feldwegen“
 const WISH_WAYS = [
   { key: 'gravel', prefix: true, words: ['schotter', 'kies', 'splitt', 'wassergebunden', 'forstweg', 'forststrass', 'forstrass', 'treidelpfad', 'kanalweg'] },
-  { key: 'unpaved', prefix: true, words: ['feldweg', 'waldweg', 'wiesenweg', 'unbefestigt', 'naturweg', 'erdweg', 'naturboden', 'grasweg'] },
+  { key: 'unpaved', prefix: true, words: ['feldweg', 'waldweg', 'wiesenweg', 'unbefestigt', 'naturweg', 'erdweg', 'naturboden', 'grasweg', 'feldstrass', 'wirtschaftsweg'] },
+  { key: 'unpaved', words: ['feld', 'felder', 'wiese', 'wiesen', 'gelaende', 'querfeldein'] },
   { key: 'paths', prefix: true, words: ['pfad', 'trampelpfad', 'singletrail', 'trail', 'wurzel', 'schmal'] },
   { key: 'wide', prefix: true, words: ['breit'] },
   { key: 'steps', words: ['treppe', 'stufe', 'treppenstufe'] },
   { key: 'quiet', words: ['verkehr', 'autos', 'ruhig', 'verkehrsarm', 'autofrei', 'strassenverkehr'] },
   { key: 'roads', prefix: true, words: ['hauptstrass', 'bundesstrass', 'landstrass', 'kreisstrass', 'strasse', 'strassen'] },
   { key: 'signals', prefix: true, words: ['ampel'] },
+  { key: 'cobbles', prefix: true, words: ['kopfstein', 'pflaster', 'pflasterstein'] },
   { key: 'asphalt', prefix: true, words: ['asphalt', 'teer', 'befestigt'] },
-  { key: 'towns', prefix: true, words: ['innenstadt', 'innenstaedt', 'stadtkern', 'ortskern', 'altstadt', 'stadtzentrum', 'zentrum', 'ortsdurchfahrt'] },
+  { key: 'towns', prefix: true, words: ['innenstadt', 'innenstaedt', 'stadtkern', 'ortskern', 'altstadt', 'stadtzentrum', 'zentrum', 'ortsdurchfahrt', 'fussgaengerzone'] },
+  { key: 'towns', words: ['stadt', 'staedte', 'ortschaft', 'dorf', 'doerfer', 'ortsmitte'] },
   { key: 'light', prefix: true, words: ['beleuchtet', 'beleuchtung', 'strassenlaterne', 'laterne', 'dunkel'] },
   { key: 'climb', prefix: true, words: ['hoehenmeter', 'huegelig', 'bergig', 'steil', 'anstieg', 'bergauf', 'steigung'] }
 ];
@@ -1952,11 +1955,13 @@ const WISH_PLACES = [
     q: ['node["historic"~"^(wayside_cross|wayside_shrine)$"]', 'node["man_made"="cross"]'], kind: 'point', near: 100 },
   { key: 'canal', label: 'Kanal', words: ['kanal', 'kanaele', 'kanalufer'],
     q: ['way["waterway"="canal"]'], kind: 'line', near: 120, named: ['kanal'] },
-  { key: 'river', label: 'Fluss', words: ['fluss', 'fluesse', 'flussufer', 'ufer', 'flusslauf'],
+  { key: 'water', label: 'Wasser', words: ['wasser', 'gewaesser', 'ufer'],
+    q: ['way["waterway"~"^(river|canal|stream)$"]', 'way["natural"="water"]["water"~"^(lake|pond|reservoir|river)$"]'], kind: 'line', near: 150 },
+  { key: 'river', label: 'Fluss', words: ['fluss', 'fluesse', 'flussufer', 'flusslauf', 'flussnaehe'],
     q: ['way["waterway"="river"]'], kind: 'line', near: 150 },
   { key: 'stream', label: 'Bach', words: ['bach', 'baeche', 'bachlauf'],
     q: ['way["waterway"="stream"]'], kind: 'line', near: 120, named: ['bach'] },
-  { key: 'lake', label: 'See', words: ['see', 'seen', 'weiher', 'teich', 'teiche', 'stausee', 'badesee', 'baggersee', 'seeufer', 'gewaesser', 'wasser'],
+  { key: 'lake', label: 'See', words: ['see', 'seen', 'weiher', 'teich', 'teiche', 'stausee', 'badesee', 'baggersee', 'seeufer', 'seen'],
     q: ['way["natural"="water"]["water"~"^(lake|pond|reservoir)$"]', 'relation["natural"="water"]["water"~"^(lake|reservoir)$"]'], kind: 'line', near: 150, named: ['see', 'weiher', 'teich'] },
   { key: 'forest', label: 'Wald', words: ['wald', 'waelder', 'forst', 'waldgebiet'],
     q: ['way["landuse"="forest"](if:length()>2000)', 'way["natural"="wood"](if:length()>2000)'], kind: 'area', near: 400, named: ['wald', 'forst', 'holz'] },
@@ -1983,65 +1988,155 @@ const WISH_PLACES = [
   { key: 'quarry', label: 'Steinbruch', words: ['steinbruch'],
     q: ['way["landuse"="quarry"]'], kind: 'area', near: 300 }
 ];
-const WISH_FILL = new Set(('ich moechte moechten will wuerde wuerden gern gerne bitte mal auch sind ist sein seien erlaubt erlauben ok okay in ordnung am an im ' +
+const WISH_FILL = new Set(('ich moechte moechten will wuerde wuerden gern gerne bitte mal auch sind ist sein seien erlaubt erlauben ok okay in ordnung am an ans im ' +
   'ein eine einem einen einer eines der die das den dem des zum zur vorbei vorbeilaufen vorbeifahren vorbeikommen laufen fahren rennen joggen entlang ' +
   'durch ueber mit zu bei beim von vom nach auf wo es geht gehen dabei unterwegs route runde strecke tour weg wege wegen zb etwa moeglichst wenn moeglich ' +
-  'vielleicht schoen schoene schoenen flach flache flachen eben ebene ebenen sehr viel viele wenig wenige nur gut gute kurz kurze lang lange so da dort ' +
+  'vielleicht schoen schoene schoenen flach flache flachen eben ebene ebenen sehr viel viele wenig wenige weniger nur gut gute kurz kurze lang lange so da dort ' +
   'hier hin zurueck wieder mich mir mein meine meinen kein keine keinen keiner nicht ohne bloss oder und aber auch idealerweise vorzugsweise passt ' +
-  'irgendwo irgendwie einmal kommen komme gibt man soll sollte sollen darf duerfen kann koennen ganz bisschen etwas richtung').split(' '));
-const PLACE_PREP = /\b(am|an|ans|zum|zur|beim|bei|vorbei|entlang|ueber|durch|auf|um|rund)\b/;
-const OPTIONAL_RE = /\b(zb|zum beispiel|etwa|gern|gerne|wenn moeglich|wenn es geht|wenn es passt|moeglichst|vielleicht|optional|idealerweise|vorzugsweise)\b/;
-const NEG_RE = /\b(kein\w*|nicht|ohne|vermeid\w*|meid\w*|weg von|auslassen|umgeh\w*|bloss nicht)\b/;
+  'irgendwo irgendwie einmal kommen komme gibt man soll sollte sollen darf duerfen kann koennen ganz bisschen etwas richtung ja nein bevorzugt lieber ' +
+  'sehen anschauen besichtigen vorbeischauen hoch runter rauf um rund bis kaum statt anstatt optional eventuell evtl max maximal mindestens ca km meter ' +
+  'gerade schon noch immer total super prima klasse toll mag liebe lieben vermeiden meiden umgehen auslassen verboten tabu erwuenscht willkommen').split(' '));
+const PLACE_PREP = new Set(['am', 'an', 'ans', 'zum', 'zur', 'beim', 'bei', 'vorbei', 'entlang', 'ueber', 'durch', 'um', 'rund', 'richtung', 'bis']);
+const ARTICLES = new Set(['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einem', 'einen', 'einer']);
+const JOINERS = new Set(['und', 'oder', 'sowie', 'aber', 'sondern', 'ausserdem', 'bzw', 'plus']);
+const OPTIONAL_RE = /\b(zb|zum beispiel|etwa|gern|gerne|wenn moeglich|wenn es geht|wenn es passt|moeglichst|vielleicht|optional|idealerweise|vorzugsweise|eventuell|evtl)\b/;
+// Verneinung: „keine Treppen“, „wenig Verkehr“ wirken nach vorn, „Treppen vermeiden“ auf den ganzen Teil
+const PRE_NEG = /^(kein\w*|ohne|wenig\w*|kaum|nie|niemals|statt|anstatt|anstelle|keinesfalls)$/;
+const POST_NEG = /^(vermeid\w*|meid\w*|umgeh\w*|auslass\w*|verboten|unerwuenscht|nein|tabu)$/;
+const POS_MARK = /^(ok|okay|erlaubt|gern|gerne|ja|gut|bevorzugt|lieber|erwuenscht|willkommen|mag|moechte|will|bitte|super|prima)$/;
+// Großgeschriebene Wörter, die nach „am“, „durch“ … kein Eigenname sind
+const NOT_NAMES = new Set(('wochenende abend morgen mittag nachmittag vormittag montag dienstag mittwoch donnerstag freitag samstag sonntag ende anfang ' +
+  'start ziel schluss rand stadtrand ortsrand natur land landschaft gegend umgebung haus hause zuhause stueck teil tag nacht licht schatten sonne ' +
+  'hang boden stelle bruecke bruecken bahnhof kreuzung schule friedhof hof sportplatz parkplatz gelaende wohngebiet siedlung gewerbegebiet').split(' '));
+// Eigenname ohne erkennbare Art („an der Altmühl“): alles Passende mit diesem Namen suchen
+const WISH_NAMED = { key: 'named', label: 'Ziel', kind: 'named', near: 150,
+  q: ['way["waterway"~"^(river|canal|stream)$"]', 'relation["waterway"="river"]', 'way["natural"="water"]', 'relation["natural"="water"]',
+    'node["natural"~"^(peak|spring|cave_entrance|saddle)$"]', 'nwr["tourism"~"^(viewpoint|attraction|alpine_hut|wilderness_hut)$"]', 'nwr["historic"]',
+    'nwr["man_made"~"^(tower|windmill|watermill)$"]', 'way["landuse"="forest"]', 'way["natural"="wood"]', 'nwr["leisure"="park"]',
+    'nwr["amenity"~"^(cafe|restaurant|biergarten|pub|shelter)$"]', 'nwr["power"="generator"]'] };
 
 function matchWord(t, w, prefix) {
   return t === w || (t.startsWith(w) && (prefix || INFL.includes(t.slice(w.length))));
+}
+const wishTokens = s => (s.match(/\p{L}[\p{L}-]*\p{L}|\p{L}/gu) || []).map(o => ({ o, t: fold(o).replace(/-/g, '') }));
+const isCap = x => /^\p{Lu}/u.test(x.o);
+// Bekannter Begriff? Der längste Treffer gewinnt („Waldweg“ ist eine Wegart, „Wald“ ein Ort)
+function wishTerm(t) {
+  let best = null;
+  for (const e of WISH_WAYS) for (const w of e.words) if (matchWord(t, w, e.prefix) && (!best || w.length > best.len)) best = { type: 'way', e, len: w.length };
+  for (const e of WISH_PLACES) for (const w of e.words) if (matchWord(t, w, false) && (!best || w.length > best.len)) best = { type: 'place', e, len: w.length };
+  return best;
+}
+// Endet auf eine Ortsart wie „Brombachsee“, „Ludwigskanal“, „Burgruine Wolfstein“?
+// Ohne Ortsangabe davor zählen nur Endungen, die selten Ortsnamen sind („Regensburg“, „Neukirchen“ sind Städte)
+const TOWNISH = new Set(['burg', 'berg', 'bach', 'kirche', 'wald', 'holz', 'forst', 'kopf']);
+function namedKind(t, strict) {
+  for (const e of WISH_PLACES) for (const h of e.named || []) for (const i of INFL)
+    if (t.endsWith(h + i) && t.length >= h.length + i.length + 3 && !(strict && TOWNISH.has(h))) return e;
+  return null;
 }
 
 function parseWishes(text, mode) {
   const W = { text: (text || '').trim().slice(0, 300), prof: {}, places: [], chips: [], notes: [], unknown: [] };
   if (!W.text) return W;
-  const flat = fold(W.text).replace(/\bz\.\s?b\./g, 'zb').replace(/\b(bzw|ca|evtl|ggf|usw|u\.a)\./g, '$1');
-  const orig = W.text.replace(/\bz\.\s?[bB]\./g, 'zb').replace(/\b(bzw|ca|evtl|ggf|usw|u\.a)\./gi, '$1');
-  const clauses = flat.split(/[,;.!?\n]+/), origClauses = orig.split(/[,;.!?\n]+/);
+  const src = W.text
+    .replace(/\bz\.\s?b\./gi, 'zb ').replace(/\b(bzw|ca|evtl|ggf|usw|u\.a)\./gi, '$1 ')
+    .replace(/[&+]/g, ' und ')
+    // „Wald- und Feldwege“ → „Waldwege und Feldwege“
+    .replace(/(\p{L}+)-(?=(?:\s*(?:,|und|oder|bzw|\/)\s*\p{L}+-)*\s*(?:,|und|oder|bzw|\/)\s*\p{L}*?(wegen|wege|weg|pfaden|pfade|pfad|straßen|straße|strassen|strasse)(?!\p{L}))/giu,
+      (m, a, b) => a + b.toLowerCase());
+  // Stichpunkte, Zeilen, Kommas … trennen einzelne Wünsche
+  const clauses = src.split(/[,;.!?:\n·•…/()]+|\s[-–—]\s/);
   const ways = new Set(), negWays = new Set();
-  clauses.forEach((cl, ci) => {
-    const optional = OPTIONAL_RE.test(cl);
-    const segs = cl.split(/\b(?:und|aber|sondern|oder|sowie|ausserdem)\b/);
-    const origSegs = (origClauses[ci] || '').split(/\b(?:und|aber|sondern|oder|sowie|außerdem|ausserdem)\b/i);
-    segs.forEach((seg, si) => {
-      const neg = NEG_RE.test(seg);
-      const toks = seg.match(/\p{L}[\p{L}-]*/gu) || [];
-      const origToks = (origSegs[si] || '').match(/\p{L}[\p{L}-]*/gu) || [];
-      let hit = false;
-      toks.forEach((t, ti) => {
-        // längster Treffer gewinnt („Waldweg“ ist eine Wegart, „Wald“ ein Ort)
-        let best = null;
-        for (const e of WISH_WAYS) for (const w of e.words) if (matchWord(t, w, e.prefix) && (!best || w.length > best.len)) best = { type: 'way', e, len: w.length };
-        for (const e of WISH_PLACES) for (const w of e.words) if (matchWord(t, w, false) && (!best || w.length > best.len)) best = { type: 'place', e, len: w.length };
-        if (!best) {
-          // Eigenname wie „Brombachsee“ oder „Ludwigskanal“: großgeschrieben und endet auf eine Ortsart
-          // Nur mit Ortsangabe davor („am“, „zum“, „vorbei“ …), damit „in Regensburg“ keine Burg sucht
-          const o = origToks[ti] || '';
-          if (/^\p{Lu}/u.test(o) && PLACE_PREP.test(seg)) for (const e of WISH_PLACES) for (const h of e.named || [])
-            for (const i of INFL) if (t.endsWith(h + i) && t.length >= h.length + i.length + 3) best = { type: 'place', e, len: h.length, name: o };
+  for (const cl of clauses) {
+    const toks = wishTokens(cl);
+    if (!toks.length) continue;
+    const optional = OPTIONAL_RE.test(toks.map(x => x.t).join(' '));
+    // An „und“, „aber“ … in Teile zerlegen
+    const segs = [{ toks: [], join: null }];
+    for (const x of toks) {
+      if (JOINERS.has(x.t)) segs.push({ toks: [], join: x.t });
+      else segs[segs.length - 1].toks.push(x);
+    }
+    for (const S of segs) {
+      const T = S.toks;
+      const content = T.filter(x => x.t.length >= 3 && !WISH_FILL.has(x.t));
+      S.content = content;
+      S.terms = [];
+      let skip = -1;
+      T.forEach((x, i) => {
+        if (i === skip) return;
+        let best = wishTerm(x.t);
+        if (!best && x.t.length >= 3 && !WISH_FILL.has(x.t)) {
+          const next = T[i + 1];
+          // „am Großen Brombachsee“: das Beiwort gehört zum Namen danach
+          if (isCap(x) && next && isCap(next) && !wishTerm(next.t)) return;
+          // Steht eine Ortsangabe davor („am“, „an der“, „zum“ …) oder „entlang“/„vorbei“ dahinter?
+          let j = i - 1;
+          while (j >= 0 && (ARTICLES.has(T[j].t) || (isCap(T[j]) && !wishTerm(T[j].t)))) j--;
+          const prep = (j >= 0 && PLACE_PREP.has(T[j].t)) || !!(next && (next.t === 'entlang' || next.t === 'vorbei'));
+          const alone = T.length === 1;                               // Stichpunkt aus nur einem Wort
+          const e = namedKind(x.t, !prep);
+          // „in Regensburg“ sucht keine Burg: Eigennamen nur mit Ortsangabe oder als eigener Stichpunkt
+          if (e && (prep || alone)) best = { type: 'place', e, name: x.o };
+          else if (isCap(x) && prep && !NOT_NAMES.has(x.t)) best = { type: 'place', e: WISH_NAMED, name: x.o };
         }
-        if (!best) return;
-        hit = true;
-        if (best.type === 'way') (neg ? negWays : ways).add(best.e.key);
-        else if (neg) W.notes.push(`${best.e.label} meiden geht nicht`);
-        else if (!W.places.some(p => p.key === best.e.key && p.name === best.name)) W.places.push({ ...best.e, name: best.name || '', optional });
+        // „Burgruine Wolfstein“, „Schloss Thurn“: der Name dahinter gehört zum Ort
+        const nx = T[i + 1];
+        if (best && best.type === 'place' && !best.name && nx && isCap(nx) && nx.t.length >= 3 && !wishTerm(nx.t)
+            && !WISH_FILL.has(nx.t) && !NOT_NAMES.has(nx.t)) { best = { ...best, name: nx.o, display: x.o + ' ' + nx.o }; skip = i + 1; }
+        if (best) S.terms.push({ i, best });
       });
-      const words = toks.filter(t => t.length >= 3 && !WISH_FILL.has(t));
-      if (!hit && words.length) W.unknown.push((origSegs[si] || seg).trim());
+      S.post = T.some(x => POST_NEG.test(x.t));
+      S.pos = T.some(x => POS_MARK.test(x.t));
+      S.preAt = T.findIndex((x, i) => PRE_NEG.test(x.t) || (x.t === 'von' && i > 0 && T[i - 1].t === 'weg'));
+      S.nichtAt = T.findIndex(x => x.t === 'nicht');
+      S.marked = S.post || S.pos || S.preAt >= 0 || S.nichtAt >= 0;
+    }
+    const negOf = (S, term) => {
+      if (S.post) return true;
+      if (S.preAt >= 0 && S.preAt < term.i) return true;
+      if (S.nichtAt >= 0) return S.terms.some(u => u.i > S.nichtAt) ? term.i > S.nichtAt : term.i < S.nichtAt;
+      return false;
+    };
+    // Teile ohne eigenes Signal übernehmen es vom Nachbarn: „keine Treppen und Ampeln“, „Treppen und Ampeln vermeiden“
+    const linked = j => ['und', 'oder', 'sowie', 'bzw', 'plus'].includes(j);
+    segs.forEach((S, k) => {
+      S.inherit = null;
+      if (S.marked || !S.terms.length) return;
+      for (let m = k + 1; m < segs.length && linked(segs[m].join); m++) {
+        if (segs[m].post) { S.inherit = true; return; }
+        if (segs[m].marked) break;
+      }
+      if (k > 0 && linked(S.join)) {
+        const P = segs[k - 1];
+        if (P.inherit !== null) S.inherit = P.inherit;
+        else if (P.terms.length) S.inherit = negOf(P, P.terms[P.terms.length - 1]);
+      }
     });
-  });
+    for (const S of segs) {
+      for (const term of S.terms) {
+        const neg = S.inherit !== null ? S.inherit : negOf(S, term);
+        const b = term.best;
+        if (b.type === 'way') (neg ? negWays : ways).add(b.e.key);
+        else if (neg) W.notes.push(`${b.name || b.e.label} meiden geht nicht`);
+        else if (!W.places.some(p => p.key === b.e.key && p.name === (b.name || ''))) {
+          const place = { ...b.e, name: b.name || '', optional };
+          if (b.e === WISH_NAMED) place.label = b.name;
+          if (b.display) place.display = b.display;
+          W.places.push(place);
+        }
+      }
+      if (!S.terms.length && S.content.length) W.unknown.push(S.toks.map(x => x.o).join(' '));
+    }
+  }
   const chip = (t, ok = true) => W.chips.push({ t, ok });
-  const std = t => W.notes.push(t);
+  const std = t => { if (!W.notes.includes(t)) W.notes.push(t); };
   // Wegarten je nach Sportart in Profilwerte übersetzen
   if (mode === 'laufen') {
     if (ways.has('unpaved') || ways.has('paths')) { W.prof.gravel = 2; chip('Feld- und Waldwege erlaubt'); }
     else if (ways.has('gravel')) { W.prof.gravel = 1; chip('Schotterwege erlaubt'); }
-    if (negWays.has('gravel') || negWays.has('unpaved') || ways.has('asphalt')) std('Nur befestigte Wege ist schon Standard');
+    if (negWays.has('gravel') || negWays.has('unpaved') || negWays.has('paths') || ways.has('asphalt')) std('Nur befestigte Wege ist beim Laufen schon Standard');
   } else if (mode === 'trail') {
     if (negWays.has('gravel')) { W.prof.nogravel = 1; chip('Schotter- und Forststraßen meiden'); }
     if (ways.has('paths') || negWays.has('wide')) { W.prof.trailpref = 1; chip('Schmale Pfade bevorzugt'); }
@@ -2051,6 +2146,7 @@ function parseWishes(text, mode) {
     if (ways.has('asphalt')) std('Trail Run bleibt bei möglichst wenig Asphalt');
   } else {
     if (ways.has('gravel') || ways.has('unpaved') || ways.has('paths')) std('Beim Rennrad bleibt es bei reinem Asphalt');
+    if (negWays.has('gravel') || negWays.has('unpaved') || ways.has('asphalt')) std('Reiner Asphalt ist beim Rennrad schon Standard');
   }
   if (negWays.has('steps')) {
     if (mode === 'rennrad') std('Treppen sind beim Rennrad schon gesperrt');
@@ -2061,52 +2157,71 @@ function parseWishes(text, mode) {
     if (mode === 'trail') std('Ampeln spielen beim Trail Run kaum eine Rolle');
     else { W.prof.nosignals = 1; chip('Ampeln meiden'); }
   }
+  if (ways.has('cobbles') || negWays.has('cobbles')) std(mode === 'rennrad' ? 'Pflaster ist beim Rennrad schon gesperrt' : 'Pflaster wird schon gemieden, Asphalt und Naturwege gehen vor');
   if (ways.has('towns') || negWays.has('towns')) std(mode === 'trail' ? 'Innenstädte sind beim Trail Run immer gesperrt'
     : 'Innenstädte: dafür gibt es oben den Schalter unter „Wegwahl“');
   if (ways.has('light') || negWays.has('light')) std(mode === 'laufen' ? 'Beleuchtung: dafür gibt es oben den Schalter „Im Dunkeln“' : 'Beleuchtung gibt es nur beim Laufen');
   if (ways.has('climb') || negWays.has('climb')) std('Höhenmeter stellst du oben ein');
   // Höchstens drei Orte, Pflichtziele zuerst
   W.places.sort((a, b) => a.optional - b.optional);
+  if (W.places.length > 3) std('Höchstens drei Ziele, der Rest bleibt weg');
   W.places = W.places.slice(0, 3);
-  for (const p of W.places) chip((p.kind === 'line' ? `Am ${p.name || p.label} entlang` : p.name || p.label) + (p.optional ? ' · wenn es passt' : ''));
+  W.notes = [...new Set(W.notes)];
+  for (const p of W.places) chip((p.kind === 'line' ? `Am ${p.display || p.name || p.label} entlang` : p.display || p.name || p.label) + (p.optional ? ' · wenn es passt' : ''));
   return W;
 }
 
-/* Ziele in OpenStreetMap suchen (Overpass). Ein Aufruf pro Ortsart, Ergebnisse bleiben bis zum Neuladen im Speicher. */
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+/* Ziele in OpenStreetMap suchen (Overpass). Ein Aufruf pro Ortsart, Ergebnisse bleiben bis zum Neuladen im Speicher.
+   Die öffentlichen Server sind oft überlastet: Antwortet einer nicht schnell oder mit Fehler, wird der nächste
+   gefragt, und die erste brauchbare Antwort gewinnt. */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 const placeCache = new Map();
-async function overpass(query) {
-  let lastErr;
-  for (const [i, url] of OVERPASS.entries()) {
-    // Antwortet der Hauptserver nicht schnell, übernimmt der zweite
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), i ? 25000 : 12000);
-    try {
-      const r = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctrl.signal });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return (await r.json()).elements || [];
-    } catch (e) { lastErr = e; } finally { clearTimeout(t); }
-  }
-  throw lastErr;
+function overpass(query) {
+  return new Promise((resolve, reject) => {
+    const ctrls = [], timers = [];
+    let done = false, started = 0, failed = 0, lastErr = new Error('Overpass nicht erreichbar');
+    const finish = () => { done = true; timers.forEach(clearTimeout); ctrls.forEach(c => c.abort()); };
+    const fail = e => {
+      lastErr = e;
+      if (done) return;
+      if (++failed >= OVERPASS.length) { finish(); reject(lastErr); } else if (failed >= started) next();
+    };
+    const next = () => {
+      if (done || started >= OVERPASS.length) return;
+      const i = started++, ctrl = new AbortController();
+      ctrls.push(ctrl);
+      timers.push(setTimeout(() => ctrl.abort(), 25000));
+      if (started < OVERPASS.length) timers.push(setTimeout(next, 3000));   // langsam? den nächsten dazunehmen
+      fetch(OVERPASS[i], { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctrl.signal })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(j => {
+          if (!j.elements || (!j.elements.length && /error/i.test(j.remark || ''))) throw new Error(j.remark || 'Overpass-Fehler');
+          if (!done) { finish(); resolve(j.elements); }
+        })
+        .catch(fail);
+    };
+    next();
+  });
 }
 function placeQuery(P, s, R) {
   const around = `(around:${Math.round(R)},${s.lat.toFixed(5)},${s.lon.toFixed(5)})`;
-  const nm = P.name ? `["name"~"${P.name.replace(/[^\p{L}\- ]/gu, '')}",i]` : '';
   // Bedingungen wie (if:length()>2000) müssen hinter dem Umkreis stehen
-  const sels = P.q.map(q => { const m = q.match(/^(.*?)(\(if:.*\))?$/); return m[1] + nm + around + (m[2] || '') + ';'; }).join('');
-  if (P.kind === 'line') {
+  const sels = '(' + P.q.map(q => { const m = q.match(/^(.*?)(\(if:.*\))?$/); return m[1] + around + (m[2] || '') + ';'; }).join('') + ')';
+  // Namen erst danach filtern: ein Namensfilter vorweg lässt den Server alle Namen weltweit durchsuchen (dauert ewig)
+  const body = P.name ? `${sels}->.c;nwr.c["name"~"${P.name.replace(/[^\p{L}\- ]/gu, '')}",i];` : sels + ';';
+  if (P.kind === 'line' || P.kind === 'named') {
     const dLat = R / 111000, dLon = R / (111000 * Math.cos(s.lat * Math.PI / 180));
     const bb = [s.lat - dLat, s.lon - dLon, s.lat + dLat, s.lon + dLon].map(v => v.toFixed(4)).join(',');
-    return `[out:json][timeout:25];(${sels});out tags geom(${bb}) 120;`;
+    return `[out:json][timeout:25];${body}out tags geom(${bb}) 200;`;
   }
-  return `[out:json][timeout:25];(${sels});out tags center 200;`;
+  return `[out:json][timeout:25];${body}out tags center 200;`;
 }
 // Liefert je Ortsart eine Liste von Kandidaten: { lat, lon, name } bzw. bei Gewässern alle Linienpunkte
 async function findPlaces(specs, hiKm, cores) {
   const s = state.start;
   const reach = reachKm(hiKm) * 1000 * 1.35;
-  const out = [];
-  for (const P of specs) {
+  return Promise.all(specs.map(async P => {
     const key = [P.key, P.name, s.lat.toFixed(3), s.lon.toFixed(3), Math.round(reach / 500)].join(':');
     let list = placeCache.get(key), error = null;
     if (!list) {
@@ -2115,13 +2230,25 @@ async function findPlaces(specs, hiKm, cores) {
         list = [];
         for (const e of els) {
           const name = (e.tags && e.tags.name) || '';
-          if (P.kind === 'line') {
-            const geoms = e.geometry ? [e.geometry] : (e.members || []).map(m => m.geometry).filter(Boolean);
-            for (const g of geoms) for (const p of g) if (p && p.lat != null) list.push({ lat: p.lat, lon: p.lon, name });
-          } else {
-            const c = e.center || e;
-            if (c.lat != null) list.push({ lat: c.lat, lon: c.lon, name });
+          const geoms = P.kind === 'point' || P.kind === 'area' ? [] : e.geometry ? [e.geometry] : (e.members || []).map(m => m.geometry).filter(Boolean);
+          if (geoms.length) {
+            // Linien auf etwa 40 m verdichten, damit „am Wasser entlang“ auch zwischen weit auseinanderliegenden Punkten gemessen wird
+            for (const g of geoms) {
+              let prev = null;
+              for (const p of g) {
+                if (!p || p.lat == null) { prev = null; continue; }
+                if (prev) {
+                  const n = Math.min(60, Math.floor(haversine([prev.lon, prev.lat], [p.lon, p.lat]) / 40));
+                  for (let k = 1; k < n; k++) list.push({ lat: prev.lat + (p.lat - prev.lat) * k / n, lon: prev.lon + (p.lon - prev.lon) * k / n, name });
+                }
+                list.push({ lat: p.lat, lon: p.lon, name });
+                prev = p;
+              }
+            }
+            continue;
           }
+          const c = e.center || (e.lat != null ? e : e.bounds && { lat: (e.bounds.minlat + e.bounds.maxlat) / 2, lon: (e.bounds.minlon + e.bounds.maxlon) / 2 });
+          if (c && c.lat != null) list.push({ lat: c.lat, lon: c.lon, name });
         }
         placeCache.set(key, list);
       } catch (e) { error = e; list = []; }
@@ -2129,9 +2256,8 @@ async function findPlaces(specs, hiKm, cores) {
     // Ziele in gesperrten Stadtkernen kommen nicht in Frage
     const ok = list.filter(p => !cores.some(c => haversine([c.lon, c.lat], [p.lon, p.lat]) < c.r + 100))
       .map(p => ({ ...p, d: haversine([s.lon, s.lat], [p.lon, p.lat]) / 1000 }));
-    out.push({ spec: P, list: ok, error, inCores: list.length - ok.length });
-  }
-  return out;
+    return { spec: P, list: ok, error, inCores: list.length - ok.length };
+  }));
 }
 
 // So weit darf ein Ziel höchstens vom Start weg sein, damit eine Runde dieser Länge es erreicht
@@ -2139,7 +2265,8 @@ const reachKm = km => (state.shape === 'oab' ? km / 2 : km / Math.PI) / MODES[st
 const bearingTo = (a, b) => Math.atan2((b.lon - a.lon) * Math.cos(a.lat * Math.PI / 180), b.lat - a.lat);
 
 // Ziele für einen Kandidaten wählen (i = Nummer des Kandidaten, damit die Varianten verschiedene Ziele nehmen)
-function choosePlaces(found, targetKm, i) {
+// shift: beim neuen Versuch nach einem verfehlten Ziel eine andere Stelle nehmen
+function choosePlaces(found, targetKm, i, shift = 0) {
   const s = state.start, dmax = reachKm(targetKm), fixed = [], missing = [];
   const dirOk = p => state.dir === 'any' || Math.abs(((bearingTo(s, p) * 180 / Math.PI - state.dir + 540) % 360) - 180) < 70;
   found.forEach((F, k) => {
@@ -2153,10 +2280,11 @@ function choosePlaces(found, targetKm, i) {
     // Verschiedene Kandidaten nehmen verschiedene Ziele (mindestens 600 m auseinander)
     const picks = [];
     for (const p of sorted) { if (picks.every(q => haversine([q.lon, q.lat], [p.lon, p.lat]) > 600)) picks.push(p); if (picks.length >= 4) break; }
-    const p1 = picks[i % picks.length];
-    const meta = { key: P.key, label: p1.name || P.name || P.label, near: P.near, optional: !!P.optional, fix: true };
+    const p1 = picks[(i + shift) % picks.length];
+    const meta = { key: P.key, kind: P.kind, label: p1.name || P.name || P.label, near: P.near, optional: !!P.optional, fix: true };
+    if (P.kind === 'line' || P.kind === 'named') meta.along = F.list.filter(p => !p1.name || !p.name || p.name === p1.name);
     fixed.push({ lat: p1.lat, lon: p1.lon, ...meta });
-    if (P.kind === 'line' && state.shape !== 'oab') {
+    if ((P.kind === 'line' || P.kind === 'named') && state.shape !== 'oab') {
       // Ein Stück am Wasser entlang: zweiter Punkt auf derselben Linie, etwa so weit vom Start weg wie der erste
       const along = Math.min(4, Math.max(0.6, targetKm * 0.15));
       let p2 = null, bs = Infinity;
@@ -2197,7 +2325,35 @@ function shapeWithFixed(start, targetKm, detour, spec, shape, fixed, cores) {
   return cores.length ? pushOutOfCores(pts, cores) : pts;
 }
 
-// Wie nah führt die Route an jedem Ziel vorbei? Zwei Punkte am selben Gewässer zählen als ein Ziel.
+// Wie viele Meter der Route liegen höchstens near vom Wasser (bzw. der Linie) entfernt, und wie nah kommt sie?
+function alongLine(route, pts, near) {
+  const cell = 0.003, G = new Map();
+  for (const p of pts) {
+    const k = Math.floor(p.lat / cell) + ':' + Math.floor(p.lon / cell);
+    if (!G.has(k)) G.set(k, []);
+    G.get(k).push(p);
+  }
+  const dist = q => {
+    let b = Infinity;
+    const a = Math.floor(q[1] / cell), o = Math.floor(q[0] / cell);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const p of G.get((a + i) + ':' + (o + j)) || []) {
+      const d = haversine(q, [p.lon, p.lat]);
+      if (d < b) b = d;
+    }
+    return b;
+  };
+  let len = 0, minD = Infinity, prevNear = false;
+  route.coords.forEach((c, i) => {
+    const d = dist(c);
+    if (d < minD) minD = d;
+    const nr = d <= near;
+    if (i && nr && prevNear) len += haversine(route.coords[i - 1], c);
+    prevNear = nr;
+  });
+  return { len, minD };
+}
+// Ist jedes Ziel erreicht? Zwei Punkte am selben Gewässer zählen als ein Ziel.
+// Punkte: die Route führt nah genug vorbei. Gewässer: sie läuft ein Stück daran entlang.
 function wishCheck(route, fixed) {
   const res = [];
   for (const f of fixed) {
@@ -2208,8 +2364,22 @@ function wishCheck(route, fixed) {
       if (dd < best) best = dd;
     }
     const prev = res.find(x => x.key === f.key && x.label === f.label);
-    if (prev) { prev.d = Math.max(prev.d, best); prev.ok = prev.d <= f.near; }
-    else res.push({ key: f.key, label: f.label, near: f.near, optional: f.optional, d: best, ok: best <= f.near, lat: f.lat, lon: f.lon });
+    if (prev) { prev.pd = Math.max(prev.pd, best); continue; }
+    res.push({ key: f.key, kind: f.kind, label: f.label, near: f.near, optional: f.optional, pd: best, along: f.along, lat: f.lat, lon: f.lon });
+  }
+  for (const r of res) {
+    r.d = r.pd;
+    r.ok = r.pd <= r.near;
+    if (r.along && r.along.length > 1) {
+      const A = alongLine(route, r.along, r.near);
+      const need = Math.min(state.shape === 'oab' ? 300 : 800, route.length * 0.08);
+      r.d = Math.min(r.pd, A.minD);
+      r.len = A.len;
+      // Am Wasser: genug Strecke daran entlang. Eigenname: entweder vorbei oder ein Stück entlang
+      r.ok = r.kind === 'line' ? A.len >= need : (r.pd <= r.near || A.len >= need);
+    }
+    delete r.along;
+    delete r.pd;
   }
   return res;
 }
@@ -2224,15 +2394,15 @@ function renderWishOut() {
   W.notes.forEach(n => parts.push(`<span class="wchip note">${esc(n)}</span>`));
   let html = parts.length ? `<span class="wrow">${parts.join('')}</span>` : '';
   if (W.unknown.length) html += `<span class="wunk">Nicht verstanden: ${W.unknown.map(u => '„' + esc(u) + '“').join(', ')}</span>`;
-  if (!W.chips.length && !W.notes.length) html += `<span class="wunk">Versuch es mit Begriffen wie Schotterwege, Pfade, keine Treppen, wenig Verkehr, Windrad, See, Kanal, Burg oder Aussichtsturm.</span>`;
+  if (!W.chips.length && !W.notes.length) html += `<span class="wunk">Am besten Stichpunkte, z. B. Schotterwege ok, Pfade, keine Treppen, wenig Verkehr, Windrad, Burg, am See, an der Altmühl.</span>`;
   out.innerHTML = html;
   out.hidden = false;
   return W;
 }
 const WISH_EXAMPLES = {
-  laufen: 'z. B. „Flache Schotterwege sind erlaubt, gerne am Kanal“ oder „keine Treppen“',
-  trail: 'z. B. „Ich möchte an einem Windrad vorbeilaufen“ oder „schmale Pfade“',
-  rennrad: 'z. B. „Wenig Verkehr, an einem See vorbei“ oder „Ampeln meiden“'
+  laufen: 'Schotterwege ok, am Kanal, keine Treppen',
+  trail: 'Windrad, schmale Pfade, Aussichtspunkt',
+  rennrad: 'Wenig Verkehr, am See, Ampeln meiden'
 };
 
 const routeOpts = () => {
@@ -2332,12 +2502,7 @@ function bucketNow() {
 }
 // Sperrt der Server doch einmal, wird nichts mehr geschickt, bis die Sperre vorbei ist
 let cooldownUntil = 0;
-// Wie lange n Anfragen höchstens dauern, wenn das Kontingent erst nachlaufen muss (ms ab jetzt)
-function timeFor(n) {
-  return Math.max(Math.max(0, n - bucketNow().t) / RATE_PER_MIN * 60000, cooldownUntil - Date.now());
-}
 // Jede Anfrage nimmt eine aus dem Kontingent; ist keine da, wird still gewartet.
-// Den einen Countdown für den ganzen Klick zeigt generate() an.
 async function rateGate() {
   for (;;) {
     const b = bucketNow();
@@ -2369,7 +2534,7 @@ async function brouter(pts, opts, retried = false, busyTries = 0) {
   });
   if (!txt.trim().startsWith('{')) {
     if (/retry later|too many|busy|overload/i.test(txt)) {
-      // Die Sperre dauert etwa eine Minute: so lange warten (Countdown kommt aus rateGate), dann nochmal
+      // Die Sperre dauert etwa eine Minute: so lange still warten (rateGate), dann nochmal
       cooldownUntil = Math.max(cooldownUntil, Date.now() + 65000);
       store.set('bucket', { t: 0, at: Date.now() });
       if (busyTries < 2) {
@@ -2695,15 +2860,22 @@ function surfaceCheck(route, ro = {}) {
 async function buildCandidate(theta, seed, lo, hi, ro, idx = 0) {
   const m = MODES[state.mode];
   // Ziel irgendwo in der Spanne statt immer genau in der Mitte
-  const target = lo + (hi - lo) * (0.35 + Math.random() * 0.3);
+  let target = lo + (hi - lo) * (0.35 + Math.random() * 0.3);
+  // Liegt ein Pflichtziel weiter weg, als diese Länge reicht, die Runde innerhalb des Bereichs passend länger machen
+  if (ro.found) for (const F of ro.found) {
+    if (F.spec.optional || !F.list.length) continue;
+    const need = Math.min(...F.list.map(p => p.d)) / reachKm(1) * 1.03;
+    if (need > target) target = Math.min(hi, need);
+  }
   // Umwegfaktor aus früheren Routen gelernt: so passt die Länge meist schon beim ersten Versuch
   const learned = store.get('detour', {});
   // pro Startpunkt (auf etwa 1 km gerundet) gelernt: um einen Stadtkern herum braucht es andere Werte als am Ortsrand
   const dkey = [state.mode, state.shape, state.start.lat.toFixed(2), state.start.lon.toFixed(2)].join(':');
   let detour = Math.min(2.2, Math.max(1.0, learned[dkey] || m.detour)), best = null, lastErr = null, reseed = 0;
   // Besonderheiten: Ziele (Windrad, See …) für diesen Kandidaten
-  const { fixed, missing } = ro.found && ro.found.length ? choosePlaces(ro.found, target, idx) : { fixed: [], missing: [] };
+  let shift = 0, fixed = [], missing = [];
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (ro.found && ro.found.length) ({ fixed, missing } = choosePlaces(ro.found, target, idx, shift));
     const spec = randomShape(rng(seed + reseed * 7919), m.waypoints);
     const pts0 = fixed.length
       ? shapeWithFixed(state.start, target, detour, spec, state.shape, fixed, ro.cores || [])
@@ -2731,6 +2903,7 @@ async function buildCandidate(theta, seed, lo, hi, ro, idx = 0) {
       if (!spur && !core && !surf.hard && !surf.high && miss === 0 && !(wishMiss - missing.length)) break;
       // Bei einem Mangel eine neue Form versuchen; passt nur die Länge nicht, die Größe nachjustieren
       if (spur > 0 || core || surf.hard || surf.high || wishMiss - missing.length) reseed++;
+      if (wishMiss - missing.length) shift++;
       if (!spur && !core) detour = Math.min(4, Math.max(0.5, detour * (km / target)));
       lastErr = null;
     } catch (e) {
@@ -2836,7 +3009,8 @@ async function generate() {
     for (const F of ro.found) {
       const nm = F.spec.name || F.spec.label;
       if (F.error && !F.list.length) wishNotes.push(`${nm}: Die Suche in OpenStreetMap ist gerade nicht erreichbar.`);
-      else if (!F.list.length) wishNotes.push(F.inCores ? `${nm}: Nur in gesperrten Stadtkernen gefunden.` : `${nm}: In der Umgebung nichts gefunden.`);
+      else if (!F.list.length) wishNotes.push(F.inCores ? `${nm}: Nur in gesperrten Stadtkernen gefunden.`
+        : `${nm}: Im Umkreis von ${fmtKm(dmax * 1.35, 0)} km um den Start nichts gefunden. Für weiter entfernte Ziele die Länge erhöhen.`);
       else {
         const near = Math.min(...F.list.map(p => p.d));
         if (near > dmax) {
@@ -2846,14 +3020,7 @@ async function generate() {
       }
     }
   }
-  // Ein einziger Countdown: so lange dauert der Klick höchstens; sind die Varianten früher fertig, endet er früher
-  const until = Date.now() + timeFor(CLICK_REQUESTS) + 8000;
-  const tick = () => {
-    const s = Math.ceil((until - Date.now()) / 1000);
-    setStatus(s > 0 ? `Berechne Varianten … höchstens noch ${s} s` : 'Berechne Varianten … gleich fertig');
-  };
-  tick();
-  const ticker = setInterval(tick, 1000);
+  setStatus('Berechne Varianten …');
   const results = await Promise.allSettled(thetas.map((th, i) => buildCandidate(th, Math.floor(Math.random() * 2 ** 31), lo, hi, ro, i)));
   let all = results.filter(r => r.status === 'fulfilled').map(r => r.value);
   const errors = results.filter(r => r.status === 'rejected').map(r => r.reason);
@@ -2877,7 +3044,6 @@ async function generate() {
       if (e instanceof RouteError && STOP.test(e.message)) break;
     }
   }
-  clearInterval(ticker);
   // Start, Sportart oder Optionen wurden während der Berechnung geändert: alte Ergebnisse nicht zeigen
   if (stale()) {
     setBusy(false);
@@ -3072,7 +3238,7 @@ function renderDetail() {
   $('detail-lit').hidden = !showLit;
   const W = parseWishes($('wish').value, state.mode);
   const wl = [...(v.wish || []).map(w => w.ok
-    ? `<span><b>✓ ${escapeHtml(w.label)}</b> · ${w.d < 30 ? 'direkt' : fmtNum(w.d) + ' m'}</span>`
+    ? `<span><b>✓ ${escapeHtml(w.label)}</b> · ${w.len >= 300 ? fmtKm(w.len / 1000) + ' km entlang' : w.d < 30 ? 'direkt' : fmtNum(w.d) + ' m'}</span>`
     : `<span class="miss"><b>✗ ${escapeHtml(w.label)}</b> · nicht erreicht</span>`),
     ...W.chips.filter(c => !W.places.some(p => c.t.includes(p.name || p.label))).map(c => `<span><b>✓</b> ${escapeHtml(c.t)}</span>`)];
   $('detail-wish').hidden = !wl.length;
